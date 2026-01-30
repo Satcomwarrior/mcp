@@ -28,7 +28,7 @@ Browser MCP is an MCP server + Chrome extension that allows you to automate your
 
 Browser MCP now includes specialized tools and resources optimized for trading stocks and cryptocurrencies:
 
-### Trading Tools
+### General Trading Tools
 
 - **browser_get_price**: Extract current prices from trading pages using smart pattern recognition
 - **browser_execute_trade**: Automate trade execution (buy/sell) with support for market, limit, and stop orders
@@ -36,6 +36,16 @@ Browser MCP now includes specialized tools and resources optimized for trading s
 - **browser_get_portfolio**: Extract portfolio information including positions, balances, and P&L
 - **browser_set_price_alert**: Automate setting price alerts on trading platforms
 - **browser_get_market_data**: Extract comprehensive market data including volume, market cap, and price changes
+
+### ETH-Specific Tools
+
+Perfect for Ethereum traders! These tools are optimized for ETH trading workflows:
+
+- **browser_get_gas_price**: Extract current Ethereum gas prices in Gwei (slow, standard, fast)
+- **browser_get_eth_balance**: Extract ETH wallet balance from exchanges, wallets, and DeFi platforms
+- **browser_get_eth_pair_data**: Get trading pair data for ETH pairs (ETH/USDT, ETH/BTC, etc.)
+- **browser_get_defi_data**: Extract DeFi data including APY/APR, liquidity pools, and staking rewards
+- **browser_monitor_eth_transaction**: Monitor Ethereum transaction status on block explorers
 
 ### Trading Resources
 
@@ -52,12 +62,27 @@ The package includes robust utilities for:
 - Volume parsing (with K, M, B suffixes)
 - Symbol validation
 
+### ETH Trading Utilities
+
+Specialized utilities for Ethereum trading:
+- ETH unit conversion (wei, gwei, eth)
+- Gas cost calculations
+- ETH address validation and shortening
+- Trading pair parsing and validation
+- Slippage calculations for DEX trades
+- APY/APR conversions
+- Transaction hash validation
+
 These features enable automated trading workflows including:
 - Monitoring multiple assets simultaneously
 - Setting up automated price alerts
 - Executing trades based on market conditions
 - Tracking portfolio performance
 - Analyzing market trends
+- **ETH-specific**: Monitoring gas prices for optimal transaction timing
+- **ETH-specific**: Tracking DeFi yields and liquidity pools
+- **ETH-specific**: Following transaction confirmations on Etherscan
+- **ETH-specific**: Managing ETH trading pairs across exchanges
 
 **Note**: Always use caution when automating trades. These tools are designed to assist with automation but should be used responsibly with proper risk management.
 

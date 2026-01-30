@@ -10,6 +10,7 @@ import * as tradingResources from "@/resources/trading";
 import { createServerWithTools } from "@/server";
 import * as common from "@/tools/common";
 import * as custom from "@/tools/custom";
+import * as eth from "@/tools/eth";
 import * as snapshot from "@/tools/snapshot";
 import * as trading from "@/tools/trading";
 import type { Tool } from "@/tools/tool";
@@ -37,6 +38,14 @@ const tradingTools: Tool[] = [
   trading.getMarketData,
 ];
 
+const ethTools: Tool[] = [
+  eth.getGasPrice,
+  eth.getEthBalance,
+  eth.getEthPairData,
+  eth.getDeFiData,
+  eth.monitorEthTransaction,
+];
+
 const snapshotTools: Tool[] = [
   common.navigate(true),
   common.goBack(true),
@@ -49,6 +58,7 @@ const snapshotTools: Tool[] = [
   ...commonTools,
   ...customTools,
   ...tradingTools,
+  ...ethTools,
 ];
 
 const resources: Resource[] = [
