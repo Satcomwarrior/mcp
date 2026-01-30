@@ -25,7 +25,7 @@ const GetPriceTool = z.object({
 const ExecuteTradeTool = z.object({
   name: z.literal("browser_execute_trade"),
   description: z.literal(
-    "Automate trade execution by clicking buy/sell buttons and filling order forms. Supports market, limit, and stop orders. Use this for executing stock and crypto trades.",
+    "Prepare for trade execution by providing guidance on filling order forms. This tool helps identify the steps needed to execute buy/sell trades with market, limit, or stop orders. Use with browser_click and browser_type tools to actually execute the trade.",
   ),
   arguments: z.object({
     action: z
@@ -89,7 +89,7 @@ const GetPortfolioTool = z.object({
 const SetPriceAlertTool = z.object({
   name: z.literal("browser_set_price_alert"),
   description: z.literal(
-    "Automate setting price alerts on trading platforms. Fills in alert forms with target prices and conditions.",
+    "Prepare for setting price alerts by providing guidance on filling alert forms. This tool helps identify the steps needed to set price alerts on trading platforms. Use with browser_click and browser_type tools to actually create the alert.",
   ),
   arguments: z.object({
     symbol: z.string().describe("The trading symbol"),
@@ -142,13 +142,13 @@ export const getPrice: Tool = {
       .map((c) => (c as any).text)
       .join("\n");
     
-    // Common price patterns
+    // Common price patterns - ensure at least one digit
     const pricePatterns = [
-      /\$[\d,]+\.?\d*/g,
-      /[\d,]+\.?\d*\s*USD/gi,
-      /Price:\s*[\d,]+\.?\d*/gi,
-      /Quote:\s*[\d,]+\.?\d*/gi,
-      /Last:\s*[\d,]+\.?\d*/gi,
+      /\$\d[\d,]*\.?\d*/g,
+      /\d[\d,]*\.?\d*\s*USD/gi,
+      /Price:\s*\d[\d,]*\.?\d*/gi,
+      /Quote:\s*\d[\d,]*\.?\d*/gi,
+      /Last:\s*\d[\d,]*\.?\d*/gi,
     ];
     
     const prices: string[] = [];
@@ -189,14 +189,20 @@ export const executeTrade: Tool = {
     const snapshot = await captureAriaSnapshot(context);
     
     const tradeInfo = [
-      `Trade execution initiated:`,
+      `Trade execution guidance:`,
       `  Action: ${action.toUpperCase()}`,
       `  Amount: ${amount}`,
       `  Order Type: ${orderType}`,
       price ? `  Price: ${price}` : "",
       symbol ? `  Symbol: ${symbol}` : "",
       "",
-      "Note: This tool helps automate trade execution. Use browser_click and browser_type tools to interact with specific trading platform buttons and forms.",
+      "⚠️  IMPORTANT: This tool provides guidance only. To execute the trade:",
+      "1. Use browser_click to interact with the buy/sell buttons",
+      "2. Use browser_type to fill in the order form fields",
+      "3. Manually verify all order details before confirming",
+      "4. Use browser_click to submit the order with caution",
+      "",
+      "Always double-check order parameters before execution!",
     ]
       .filter(Boolean)
       .join("\n");
@@ -322,7 +328,7 @@ export const setPriceAlert: Tool = {
       content: [
         {
           type: "text",
-          text: `Price alert setup for ${symbol}:\n  Target: ${targetPrice}\n  Condition: ${condition}\n\nUse browser_click and browser_type to interact with the alert form on the trading platform.`,
+          text: `Price alert guidance for ${symbol}:\n  Target: ${targetPrice}\n  Condition: ${condition}\n\n⚠️  To create the alert:\n1. Navigate to the alerts/notifications page\n2. Use browser_click to open the alert creation form\n3. Use browser_type to fill in symbol, price, and condition\n4. Use browser_click to save the alert\n\nVerify the alert is created successfully before relying on it.`,
         },
         ...snapshot.content,
       ],

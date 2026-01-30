@@ -97,11 +97,13 @@ export function formatPrice(price: number, currency = "USD"): string {
     return `${price.toFixed(8)} ${currency}`;
   }
   
+  const maxDecimals = (currency === "USDT" || currency === "USD" || currency === "EUR" || currency === "GBP") ? 2 : 8;
+  
   return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: currency === "USDT" ? "USD" : currency,
     minimumFractionDigits: 2,
-    maximumFractionDigits: 8,
+    maximumFractionDigits: maxDecimals,
   }).format(price);
 }
 
@@ -112,6 +114,10 @@ export function calculateChange(
   oldPrice: number,
   newPrice: number,
 ): { absolute: number; percentage: number } {
+  if (oldPrice === 0) {
+    throw new Error("Cannot calculate percentage change from a zero price");
+  }
+  
   const absolute = newPrice - oldPrice;
   const percentage = (absolute / oldPrice) * 100;
   return { absolute, percentage };
@@ -121,9 +127,9 @@ export function calculateChange(
  * Validate trading symbol format
  */
 export function validateSymbol(symbol: string): boolean {
-  // Allow alphanumeric symbols, typically 1-10 characters
+  // Allow alphanumeric symbols, typically 1-10 characters, uppercase
   // Examples: AAPL, BTC, BTCUSDT, SPY, etc.
-  return /^[A-Z0-9]{1,10}$/i.test(symbol);
+  return /^[A-Z0-9]{1,10}$/.test(symbol);
 }
 
 /**
@@ -134,6 +140,10 @@ export function isSignificantChange(
   newPrice: number,
   threshold = 1.0, // 1% by default
 ): boolean {
+  if (oldPrice === 0) {
+    return false; // Can't determine significance from zero price
+  }
+  
   const { percentage } = calculateChange(oldPrice, newPrice);
   return Math.abs(percentage) >= threshold;
 }
