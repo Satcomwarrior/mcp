@@ -90,6 +90,8 @@ These features enable automated trading workflows including:
 
 - **[Trading Examples](TRADING_EXAMPLES.md)**: Comprehensive examples of using trading features
 - **[Trading Utilities Reference](TRADING_UTILITIES.md)**: API reference for trading utility functions
+- **[ETH Trading Guide](ETH_TRADING_GUIDE.md)**: Complete guide for Ethereum traders
+- **[ETH Quick Reference](ETH_QUICK_REFERENCE.md)**: Quick reference card for ETH trading
 
 ## Contributing
 
