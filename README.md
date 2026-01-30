@@ -61,6 +61,11 @@ These features enable automated trading workflows including:
 
 **Note**: Always use caution when automating trades. These tools are designed to assist with automation but should be used responsibly with proper risk management.
 
+### Documentation
+
+- **[Trading Examples](TRADING_EXAMPLES.md)**: Comprehensive examples of using trading features
+- **[Trading Utilities Reference](TRADING_UTILITIES.md)**: API reference for trading utility functions
+
 ## Contributing
 
 This repo contains all the core MCP code for Browser MCP, but currently cannot yet be built on its own due to dependencies on utils and types from the monorepo where it's developed.
