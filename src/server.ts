@@ -31,6 +31,17 @@ export async function createServerWithTools(options: Options): Promise<Server> {
     },
   );
 
+  // Optimize lookups by pre-calculating maps
+  // Bolt Optimization: O(1) lookup for tools and resources
+  const toolsMap = new Map(tools.map((tool) => [tool.schema.name, tool]));
+  const resourcesMap = new Map(
+    resources.map((resource) => [resource.schema.uri, resource]),
+  );
+
+  // Pre-calculate schemas for list requests
+  const toolSchemas = tools.map((tool) => tool.schema);
+  const resourceSchemas = resources.map((resource) => resource.schema);
+
   const wss = await createWebSocketServer();
   wss.on("connection", (websocket) => {
     // Close any existing connections
@@ -41,15 +52,15 @@ export async function createServerWithTools(options: Options): Promise<Server> {
   });
 
   server.setRequestHandler(ListToolsRequestSchema, async () => {
-    return { tools: tools.map((tool) => tool.schema) };
+    return { tools: toolSchemas };
   });
 
   server.setRequestHandler(ListResourcesRequestSchema, async () => {
-    return { resources: resources.map((resource) => resource.schema) };
+    return { resources: resourceSchemas };
   });
 
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    const tool = tools.find((tool) => tool.schema.name === request.params.name);
+    const tool = toolsMap.get(request.params.name);
     if (!tool) {
       return {
         content: [
@@ -71,9 +82,7 @@ export async function createServerWithTools(options: Options): Promise<Server> {
   });
 
   server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
-    const resource = resources.find(
-      (resource) => resource.schema.uri === request.params.uri,
-    );
+    const resource = resourcesMap.get(request.params.uri);
     if (!resource) {
       return { contents: [] };
     }
@@ -82,8 +91,9 @@ export async function createServerWithTools(options: Options): Promise<Server> {
     return { contents };
   });
 
+  const originalClose = server.close.bind(server);
   server.close = async () => {
-    await server.close();
+    await originalClose();
     await wss.close();
     await context.close();
   };
