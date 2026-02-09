@@ -40,16 +40,29 @@ export async function createServerWithTools(options: Options): Promise<Server> {
     context.ws = websocket;
   });
 
+  // Optimize lookups by converting arrays to Maps and pre-calculating schemas
+  const toolMap = new Map<string, Tool>();
+  const toolSchemas = tools.map((tool) => {
+    toolMap.set(tool.schema.name, tool);
+    return tool.schema;
+  });
+
+  const resourceMap = new Map<string, Resource>();
+  const resourceSchemas = resources.map((resource) => {
+    resourceMap.set(resource.schema.uri, resource);
+    return resource.schema;
+  });
+
   server.setRequestHandler(ListToolsRequestSchema, async () => {
-    return { tools: tools.map((tool) => tool.schema) };
+    return { tools: toolSchemas };
   });
 
   server.setRequestHandler(ListResourcesRequestSchema, async () => {
-    return { resources: resources.map((resource) => resource.schema) };
+    return { resources: resourceSchemas };
   });
 
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    const tool = tools.find((tool) => tool.schema.name === request.params.name);
+    const tool = toolMap.get(request.params.name);
     if (!tool) {
       return {
         content: [
@@ -71,9 +84,7 @@ export async function createServerWithTools(options: Options): Promise<Server> {
   });
 
   server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
-    const resource = resources.find(
-      (resource) => resource.schema.uri === request.params.uri,
-    );
+    const resource = resourceMap.get(request.params.uri);
     if (!resource) {
       return { contents: [] };
     }
@@ -82,8 +93,9 @@ export async function createServerWithTools(options: Options): Promise<Server> {
     return { contents };
   });
 
+  const originalClose = server.close.bind(server);
   server.close = async () => {
-    await server.close();
+    await originalClose();
     await wss.close();
     await context.close();
   };
