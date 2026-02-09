@@ -6,10 +6,13 @@ import { program } from "commander";
 import { appConfig } from "@repo/config/app.config";
 
 import type { Resource } from "@/resources/resource";
+import * as tradingResources from "@/resources/trading";
 import { createServerWithTools } from "@/server";
 import * as common from "@/tools/common";
 import * as custom from "@/tools/custom";
+import * as eth from "@/tools/eth";
 import * as snapshot from "@/tools/snapshot";
+import * as trading from "@/tools/trading";
 import type { Tool } from "@/tools/tool";
 
 import packageJSON from "../package.json";
@@ -26,6 +29,23 @@ const commonTools: Tool[] = [common.pressKey, common.wait];
 
 const customTools: Tool[] = [custom.getConsoleLogs, custom.screenshot];
 
+const tradingTools: Tool[] = [
+  trading.getPrice,
+  trading.executeTrade,
+  trading.monitorPrice,
+  trading.getPortfolio,
+  trading.setPriceAlert,
+  trading.getMarketData,
+];
+
+const ethTools: Tool[] = [
+  eth.getGasPrice,
+  eth.getEthBalance,
+  eth.getEthPairData,
+  eth.getDeFiData,
+  eth.monitorEthTransaction,
+];
+
 const snapshotTools: Tool[] = [
   common.navigate(true),
   common.goBack(true),
@@ -37,9 +57,15 @@ const snapshotTools: Tool[] = [
   snapshot.selectOption,
   ...commonTools,
   ...customTools,
+  ...tradingTools,
+  ...ethTools,
 ];
 
-const resources: Resource[] = [];
+const resources: Resource[] = [
+  tradingResources.watchlist,
+  tradingResources.positions,
+  tradingResources.marketSummary,
+];
 
 async function createServer(): Promise<Server> {
   return createServerWithTools({
