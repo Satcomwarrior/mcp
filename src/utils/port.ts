@@ -13,6 +13,12 @@ export async function isPortInUse(port: number): Promise<boolean> {
 }
 
 export function killProcessOnPort(port: number) {
+  if (typeof port !== "number" || isNaN(port) || !Number.isInteger(port)) {
+    throw new Error(`Invalid port number: ${port}`);
+  }
+  if (port < 0 || port > 65535) {
+    throw new Error(`Port number out of range: ${port}`);
+  }
   try {
     if (process.platform === "win32") {
       execSync(
