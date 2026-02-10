@@ -1,7 +1,14 @@
 import { execSync } from "node:child_process";
 import net from "node:net";
 
+function validatePort(port: number) {
+  if (!Number.isInteger(port) || port < 0 || port > 65535) {
+    throw new Error(`Invalid port: ${port}`);
+  }
+}
+
 export async function isPortInUse(port: number): Promise<boolean> {
+  validatePort(port);
   return new Promise((resolve) => {
     const server = net.createServer();
     server.once("error", () => resolve(true)); // Port is still in use
@@ -13,6 +20,7 @@ export async function isPortInUse(port: number): Promise<boolean> {
 }
 
 export function killProcessOnPort(port: number) {
+  validatePort(port);
   try {
     if (process.platform === "win32") {
       execSync(
