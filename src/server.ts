@@ -31,6 +31,12 @@ export async function createServerWithTools(options: Options): Promise<Server> {
     },
   );
 
+  // Optimize: Pre-calculate maps and schema arrays for O(1) lookup and faster listing
+  const toolMap = new Map(tools.map((tool) => [tool.schema.name, tool]));
+  const resourceMap = new Map(resources.map((resource) => [resource.schema.uri, resource]));
+  const toolSchemas = tools.map((tool) => tool.schema);
+  const resourceSchemas = resources.map((resource) => resource.schema);
+
   const wss = await createWebSocketServer();
   wss.on("connection", (websocket) => {
     // Close any existing connections
@@ -41,15 +47,15 @@ export async function createServerWithTools(options: Options): Promise<Server> {
   });
 
   server.setRequestHandler(ListToolsRequestSchema, async () => {
-    return { tools: tools.map((tool) => tool.schema) };
+    return { tools: toolSchemas };
   });
 
   server.setRequestHandler(ListResourcesRequestSchema, async () => {
-    return { resources: resources.map((resource) => resource.schema) };
+    return { resources: resourceSchemas };
   });
 
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    const tool = tools.find((tool) => tool.schema.name === request.params.name);
+    const tool = toolMap.get(request.params.name);
     if (!tool) {
       return {
         content: [
@@ -71,9 +77,7 @@ export async function createServerWithTools(options: Options): Promise<Server> {
   });
 
   server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
-    const resource = resources.find(
-      (resource) => resource.schema.uri === request.params.uri,
-    );
+    const resource = resourceMap.get(request.params.uri);
     if (!resource) {
       return { contents: [] };
     }
@@ -82,8 +86,9 @@ export async function createServerWithTools(options: Options): Promise<Server> {
     return { contents };
   });
 
+  const originalClose = server.close.bind(server);
   server.close = async () => {
-    await server.close();
+    await originalClose();
     await wss.close();
     await context.close();
   };
