@@ -40,16 +40,26 @@ export async function createServerWithTools(options: Options): Promise<Server> {
     context.ws = websocket;
   });
 
+  // Optimize lookups with Maps
+  const toolsMap = new Map(tools.map((tool) => [tool.schema.name, tool]));
+  const resourcesMap = new Map(
+    resources.map((resource) => [resource.schema.uri, resource]),
+  );
+
+  // Pre-calculate schemas
+  const toolSchemas = tools.map((tool) => tool.schema);
+  const resourceSchemas = resources.map((resource) => resource.schema);
+
   server.setRequestHandler(ListToolsRequestSchema, async () => {
-    return { tools: tools.map((tool) => tool.schema) };
+    return { tools: toolSchemas };
   });
 
   server.setRequestHandler(ListResourcesRequestSchema, async () => {
-    return { resources: resources.map((resource) => resource.schema) };
+    return { resources: resourceSchemas };
   });
 
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    const tool = tools.find((tool) => tool.schema.name === request.params.name);
+    const tool = toolsMap.get(request.params.name);
     if (!tool) {
       return {
         content: [
@@ -71,9 +81,7 @@ export async function createServerWithTools(options: Options): Promise<Server> {
   });
 
   server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
-    const resource = resources.find(
-      (resource) => resource.schema.uri === request.params.uri,
-    );
+    const resource = resourcesMap.get(request.params.uri);
     if (!resource) {
       return { contents: [] };
     }
