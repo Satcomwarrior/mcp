@@ -1,0 +1,4 @@
+## 2025-02-13 - Command Injection in Utility Function
+**Vulnerability:** A critical command injection vulnerability was found in `src/utils/port.ts` within the `killProcessOnPort` function. The function accepted a `port` argument which was directly interpolated into a shell command executed via `execSync` without validation.
+**Learning:** Even utility functions that appear to take typed arguments (like `number`) can be vulnerable if inputs are manipulated (e.g., via `any` casts or unvalidated external input) and used in shell execution. TypeScript types are erased at runtime and do not guarantee safety.
+**Prevention:** Always validate inputs used in shell commands at runtime. For numeric inputs, verify `Number.isInteger()` and range checks. Prefer using `child_process.execFile` or `spawn` with argument arrays over `exec` or `execSync` with shell strings whenever possible to avoid shell injection entirely.
