@@ -1,0 +1,4 @@
+## 2025-02-16 - Command Injection via `execSync` in Utility Function
+**Vulnerability:** The `killProcessOnPort` function in `src/utils/port.ts` utilized `execSync` with string concatenation (`lsof -ti:${port}`) without runtime validation, relying solely on TypeScript `number` typing. This allowed arbitrary command injection if the function was called with a malicious string (e.g., via `any` cast or untyped JS execution).
+**Learning:** TypeScript types are erased at runtime and do not guarantee data integrity, especially for critical sinks like `execSync`. Utility functions must be robust against misuse.
+**Prevention:** Always validate inputs at runtime before passing them to sensitive sinks (like shell commands). Prefer `child_process.execFile` or `spawn` which avoid shell interpretation, or rigorously validate/sanitize input if shell is required.
