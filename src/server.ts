@@ -20,6 +20,27 @@ type Options = {
 
 export async function createServerWithTools(options: Options): Promise<Server> {
   const { name, version, tools, resources } = options;
+
+  // Optimization: Pre-calculate maps for O(1) lookup
+  // We iterate manually to ensure "first match wins" behavior, mirroring Array.find()
+  const toolsMap = new Map<string, Tool>();
+  for (const tool of tools) {
+    if (!toolsMap.has(tool.schema.name)) {
+      toolsMap.set(tool.schema.name, tool);
+    }
+  }
+
+  const resourcesMap = new Map<string, Resource>();
+  for (const resource of resources) {
+    if (!resourcesMap.has(resource.schema.uri)) {
+      resourcesMap.set(resource.schema.uri, resource);
+    }
+  }
+
+  // Optimization: Pre-calculate schema lists to avoid mapping on every request
+  const toolSchemas = tools.map((tool) => tool.schema);
+  const resourceSchemas = resources.map((resource) => resource.schema);
+
   const context = new Context();
   const server = new Server(
     { name, version },
@@ -41,15 +62,16 @@ export async function createServerWithTools(options: Options): Promise<Server> {
   });
 
   server.setRequestHandler(ListToolsRequestSchema, async () => {
-    return { tools: tools.map((tool) => tool.schema) };
+    return { tools: toolSchemas };
   });
 
   server.setRequestHandler(ListResourcesRequestSchema, async () => {
-    return { resources: resources.map((resource) => resource.schema) };
+    return { resources: resourceSchemas };
   });
 
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    const tool = tools.find((tool) => tool.schema.name === request.params.name);
+    // Optimization: Use O(1) Map lookup
+    const tool = toolsMap.get(request.params.name);
     if (!tool) {
       return {
         content: [
@@ -71,9 +93,8 @@ export async function createServerWithTools(options: Options): Promise<Server> {
   });
 
   server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
-    const resource = resources.find(
-      (resource) => resource.schema.uri === request.params.uri,
-    );
+    // Optimization: Use O(1) Map lookup
+    const resource = resourcesMap.get(request.params.uri);
     if (!resource) {
       return { contents: [] };
     }
