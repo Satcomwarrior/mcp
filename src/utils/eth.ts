@@ -98,12 +98,17 @@ export function estimateTransactionCost(
   };
 }
 
+// Compile regex patterns once
+const ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
+const GAS_PRICE_REGEX = /(\d+\.?\d*)\s*gwei/i;
+const ETH_AMOUNT_REGEX = /ETH/gi;
+
 /**
  * Parse ETH address
  */
 export function isValidEthAddress(address: string): boolean {
   // Basic validation: 0x followed by 40 hex characters
-  return /^0x[a-fA-F0-9]{40}$/.test(address);
+  return ADDRESS_REGEX.test(address);
 }
 
 /**
@@ -118,7 +123,7 @@ export function shortenAddress(address: string): string {
  * Parse gas price from string (e.g., "50 gwei")
  */
 export function parseGasPrice(gasPriceString: string): number | null {
-  const match = gasPriceString.match(/(\d+\.?\d*)\s*gwei/i);
+  const match = gasPriceString.match(GAS_PRICE_REGEX);
   if (!match) return null;
   return parseFloat(match[1]);
 }
@@ -128,7 +133,7 @@ export function parseGasPrice(gasPriceString: string): number | null {
  */
 export function parseEthAmount(ethString: string): number | null {
   // Remove ETH suffix and parse
-  const cleaned = ethString.replace(/ETH/gi, "").trim();
+  const cleaned = ethString.replace(ETH_AMOUNT_REGEX, "").trim();
   const parsed = parseFloat(cleaned);
   return isNaN(parsed) ? null : parsed;
 }
@@ -163,6 +168,8 @@ export function formatTradingPair(base: string, quote: string): string {
   return `${base.toUpperCase()}/${quote.toUpperCase()}`;
 }
 
+const TRADING_PAIR_REGEX = /^([A-Z0-9]+)[\/\-]([A-Z0-9]+)$/i;
+
 /**
  * Parse trading pair
  */
@@ -170,7 +177,7 @@ export function parseTradingPair(pair: string): {
   base: string;
   quote: string;
 } | null {
-  const match = pair.match(/^([A-Z0-9]+)[\/\-]([A-Z0-9]+)$/i);
+  const match = pair.match(TRADING_PAIR_REGEX);
   if (!match) return null;
   
   return {
@@ -237,6 +244,9 @@ export function calculateAPR(apy: number, compoundsPerYear = 365): number {
   return (Math.pow(1 + apy / 100, 1 / compoundsPerYear) - 1) * compoundsPerYear * 100;
 }
 
+const DEFI_PERCENT_REGEX = /(\d+\.?\d*)%?\s*(APY|APR)?/i;
+const TX_HASH_REGEX = /^0x[a-fA-F0-9]{64}$/;
+
 /**
  * Parse DeFi percentage (APY/APR)
  */
@@ -244,7 +254,7 @@ export function parseDeFiPercentage(percentString: string): {
   value: number;
   type: "APY" | "APR" | "unknown";
 } | null {
-  const match = percentString.match(/(\d+\.?\d*)%?\s*(APY|APR)?/i);
+  const match = percentString.match(DEFI_PERCENT_REGEX);
   if (!match) return null;
   
   const value = parseFloat(match[1]);
@@ -258,7 +268,7 @@ export function parseDeFiPercentage(percentString: string): {
  */
 export function isValidTxHash(hash: string): boolean {
   // Transaction hash: 0x followed by 64 hex characters
-  return /^0x[a-fA-F0-9]{64}$/.test(hash);
+  return TX_HASH_REGEX.test(hash);
 }
 
 /**
