@@ -31,6 +31,22 @@ export async function createServerWithTools(options: Options): Promise<Server> {
     },
   );
 
+  // Optimize lookups with Map (O(1)) instead of Array.find (O(n))
+  const toolMap = new Map<string, Tool>();
+  for (const tool of tools) {
+    // Preserve first-match-wins behavior
+    if (!toolMap.has(tool.schema.name)) {
+      toolMap.set(tool.schema.name, tool);
+    }
+  }
+
+  const resourceMap = new Map<string, Resource>();
+  for (const resource of resources) {
+    if (!resourceMap.has(resource.schema.uri)) {
+      resourceMap.set(resource.schema.uri, resource);
+    }
+  }
+
   const wss = await createWebSocketServer();
   wss.on("connection", (websocket) => {
     // Close any existing connections
@@ -49,7 +65,7 @@ export async function createServerWithTools(options: Options): Promise<Server> {
   });
 
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    const tool = tools.find((tool) => tool.schema.name === request.params.name);
+    const tool = toolMap.get(request.params.name);
     if (!tool) {
       return {
         content: [
@@ -71,9 +87,7 @@ export async function createServerWithTools(options: Options): Promise<Server> {
   });
 
   server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
-    const resource = resources.find(
-      (resource) => resource.schema.uri === request.params.uri,
-    );
+    const resource = resourceMap.get(request.params.uri);
     if (!resource) {
       return { contents: [] };
     }
