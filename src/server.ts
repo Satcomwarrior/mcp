@@ -20,6 +20,23 @@ type Options = {
 
 export async function createServerWithTools(options: Options): Promise<Server> {
   const { name, version, tools, resources } = options;
+
+  // Optimize lookups with Maps
+  // We use !map.has() to ensure the first item in the array wins, mimicking Array.find() behavior
+  const toolMap = new Map<string, Tool>();
+  for (const tool of tools) {
+    if (!toolMap.has(tool.schema.name)) {
+      toolMap.set(tool.schema.name, tool);
+    }
+  }
+
+  const resourceMap = new Map<string, Resource>();
+  for (const resource of resources) {
+    if (!resourceMap.has(resource.schema.uri)) {
+      resourceMap.set(resource.schema.uri, resource);
+    }
+  }
+
   const context = new Context();
   const server = new Server(
     { name, version },
@@ -49,7 +66,7 @@ export async function createServerWithTools(options: Options): Promise<Server> {
   });
 
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    const tool = tools.find((tool) => tool.schema.name === request.params.name);
+    const tool = toolMap.get(request.params.name);
     if (!tool) {
       return {
         content: [
@@ -71,9 +88,7 @@ export async function createServerWithTools(options: Options): Promise<Server> {
   });
 
   server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
-    const resource = resources.find(
-      (resource) => resource.schema.uri === request.params.uri,
-    );
+    const resource = resourceMap.get(request.params.uri);
     if (!resource) {
       return { contents: [] };
     }
