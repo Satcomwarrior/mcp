@@ -2,6 +2,15 @@
  * Trading-specific utilities for price parsing, validation, and formatting
  */
 
+// Cached Regex patterns for performance
+const CURRENCY_SYMBOL_REGEX = /[$€£¥₿]/g;
+const CURRENCY_CODE_REGEX = /USD|EUR|GBP|JPY|BTC|ETH|USDT/gi;
+const DOT_REGEX = /\./g;
+const COMMA_REGEX = /,/g;
+const SYMBOL_REGEX = /^[A-Z0-9]{1,10}$/;
+const PERCENT_REGEX = /%/g;
+const VOLUME_CLEAN_REGEX = /[^0-9.KMB]/gi;
+
 /**
  * Parse price strings from various formats
  * Handles: $1,234.56, 1234.56 USD, 1.234,56 EUR, etc.
@@ -11,8 +20,8 @@ export function parsePrice(priceString: string): number | null {
   
   // Remove common currency symbols and text
   let cleaned = priceString
-    .replace(/[$€£¥₿]/g, "")
-    .replace(/USD|EUR|GBP|JPY|BTC|ETH|USDT/gi, "")
+    .replace(CURRENCY_SYMBOL_REGEX, "")
+    .replace(CURRENCY_CODE_REGEX, "")
     .trim();
   
   // Handle both comma and dot as decimal separator
@@ -26,10 +35,10 @@ export function parsePrice(priceString: string): number | null {
     
     if (lastComma > lastDot) {
       // European format: 1.234,56
-      cleaned = cleaned.replace(/\./g, "").replace(",", ".");
+      cleaned = cleaned.replace(DOT_REGEX, "").replace(",", ".");
     } else {
       // US format: 1,234.56
-      cleaned = cleaned.replace(/,/g, "");
+      cleaned = cleaned.replace(COMMA_REGEX, "");
     }
   } else if (hasComma) {
     // Could be either 1,234 (thousands) or 1,23 (decimal)
@@ -39,7 +48,7 @@ export function parsePrice(priceString: string): number | null {
       cleaned = cleaned.replace(",", ".");
     } else {
       // Likely thousands: 1,234 or 1,234,567
-      cleaned = cleaned.replace(/,/g, "");
+      cleaned = cleaned.replace(COMMA_REGEX, "");
     }
   }
   
@@ -129,7 +138,7 @@ export function calculateChange(
 export function validateSymbol(symbol: string): boolean {
   // Allow alphanumeric symbols, typically 1-10 characters, uppercase
   // Examples: AAPL, BTC, BTCUSDT, SPY, etc.
-  return /^[A-Z0-9]{1,10}$/.test(symbol);
+  return SYMBOL_REGEX.test(symbol);
 }
 
 /**
@@ -152,7 +161,7 @@ export function isSignificantChange(
  * Extract numeric value from percentage strings
  */
 export function parsePercentage(percentString: string): number | null {
-  const cleaned = percentString.replace(/%/g, "").trim();
+  const cleaned = percentString.replace(PERCENT_REGEX, "").trim();
   const parsed = parseFloat(cleaned);
   return isNaN(parsed) ? null : parsed;
 }
@@ -163,7 +172,7 @@ export function parsePercentage(percentString: string): number | null {
 export function parseVolume(volumeString: string): number | null {
   if (!volumeString) return null;
   
-  const cleaned = volumeString.replace(/[^0-9.KMB]/gi, "").toUpperCase();
+  const cleaned = volumeString.replace(VOLUME_CLEAN_REGEX, "").toUpperCase();
   const multipliers: Record<string, number> = {
     K: 1000,
     M: 1000000,

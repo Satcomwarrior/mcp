@@ -2,6 +2,14 @@
  * ETH-specific utilities for Ethereum trading
  */
 
+// Cached Regex patterns for performance
+const ETH_ADDRESS_REGEX = /^0x[a-fA-F0-9]{40}$/;
+const GAS_PRICE_REGEX = /(\d+\.?\d*)\s*gwei/i;
+const ETH_SUFFIX_REGEX = /ETH/gi;
+const TRADING_PAIR_REGEX = /^([A-Z0-9]+)[\/\-]([A-Z0-9]+)$/i;
+const DEFI_PERCENTAGE_REGEX = /(\d+\.?\d*)%?\s*(APY|APR)?/i;
+const TX_HASH_REGEX = /^0x[a-fA-F0-9]{64}$/;
+
 /**
  * Convert between ETH units
  */
@@ -103,7 +111,7 @@ export function estimateTransactionCost(
  */
 export function isValidEthAddress(address: string): boolean {
   // Basic validation: 0x followed by 40 hex characters
-  return /^0x[a-fA-F0-9]{40}$/.test(address);
+  return ETH_ADDRESS_REGEX.test(address);
 }
 
 /**
@@ -118,7 +126,7 @@ export function shortenAddress(address: string): string {
  * Parse gas price from string (e.g., "50 gwei")
  */
 export function parseGasPrice(gasPriceString: string): number | null {
-  const match = gasPriceString.match(/(\d+\.?\d*)\s*gwei/i);
+  const match = gasPriceString.match(GAS_PRICE_REGEX);
   if (!match) return null;
   return parseFloat(match[1]);
 }
@@ -128,7 +136,7 @@ export function parseGasPrice(gasPriceString: string): number | null {
  */
 export function parseEthAmount(ethString: string): number | null {
   // Remove ETH suffix and parse
-  const cleaned = ethString.replace(/ETH/gi, "").trim();
+  const cleaned = ethString.replace(ETH_SUFFIX_REGEX, "").trim();
   const parsed = parseFloat(cleaned);
   return isNaN(parsed) ? null : parsed;
 }
@@ -170,7 +178,7 @@ export function parseTradingPair(pair: string): {
   base: string;
   quote: string;
 } | null {
-  const match = pair.match(/^([A-Z0-9]+)[\/\-]([A-Z0-9]+)$/i);
+  const match = pair.match(TRADING_PAIR_REGEX);
   if (!match) return null;
   
   return {
@@ -244,7 +252,7 @@ export function parseDeFiPercentage(percentString: string): {
   value: number;
   type: "APY" | "APR" | "unknown";
 } | null {
-  const match = percentString.match(/(\d+\.?\d*)%?\s*(APY|APR)?/i);
+  const match = percentString.match(DEFI_PERCENTAGE_REGEX);
   if (!match) return null;
   
   const value = parseFloat(match[1]);
@@ -258,7 +266,7 @@ export function parseDeFiPercentage(percentString: string): {
  */
 export function isValidTxHash(hash: string): boolean {
   // Transaction hash: 0x followed by 64 hex characters
-  return /^0x[a-fA-F0-9]{64}$/.test(hash);
+  return TX_HASH_REGEX.test(hash);
 }
 
 /**
