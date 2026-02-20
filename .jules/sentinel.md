@@ -1,0 +1,4 @@
+## 2024-05-22 - Command Injection in Process Killer
+**Vulnerability:** The `killProcessOnPort` function in `src/utils/port.ts` concatenated the `port` argument directly into a shell command string without validation. This allowed command injection if an attacker could control the port number (e.g., passing `"3000; rm -rf /"`).
+**Learning:** Even internal utility functions must validate inputs when executing shell commands, as they might be called with untrusted data (e.g., from configuration or user input). TypeScript types are not sufficient protection at runtime.
+**Prevention:** Always validate inputs to `exec` or `execSync` against a strict allowlist (e.g., `Number.isInteger(port)`). Use parameterized execution methods (like `execFile`) where possible, though `execSync` was used here for simplicity.

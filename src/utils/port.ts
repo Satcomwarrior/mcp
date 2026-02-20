@@ -13,6 +13,10 @@ export async function isPortInUse(port: number): Promise<boolean> {
 }
 
 export function killProcessOnPort(port: number) {
+  // Security: Strictly validate port to prevent command injection
+  if (!Number.isInteger(port) || port < 0 || port > 65535) {
+    throw new Error(`Invalid port number: ${port}`);
+  }
   try {
     if (process.platform === "win32") {
       execSync(
