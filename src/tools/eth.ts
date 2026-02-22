@@ -78,6 +78,82 @@ const MonitorEthTransactionTool = z.object({
   }),
 });
 
+// --- Regex Constants ---
+
+// Gas price patterns (common on Etherscan, exchanges, wallets)
+const GAS_PATTERNS = [
+  /(?:slow|low|standard|average|fast|rapid).*?(\d+\.?\d*)\s*gwei/gi,
+  /gas.*?(\d+\.?\d*)\s*gwei/gi,
+  /(\d+\.?\d*)\s*gwei/gi,
+];
+
+// Balance patterns
+const BALANCE_PATTERNS = [
+  /(\d+\.?\d*)\s*ETH/gi,
+  /balance.*?(\d+\.?\d*)\s*ETH/gi,
+  /ETH.*?(\d+\.?\d*)/gi,
+];
+
+const USD_PATTERNS = [
+  /\$[\d,]+\.?\d*/g,
+  /USD.*?[\d,]+\.?\d*/gi,
+];
+
+// Look for ERC-20 token balances
+const TOKEN_PATTERN = /(\d+\.?\d*)\s*([A-Z]{2,10})\b/g;
+
+// Price patterns
+const PRICE_PATTERNS = [
+  /price.*?(\d+\.?\d*)/gi,
+  /(\d+\.\d{2,})\s*(?:USDT|USD|BTC)/gi,
+];
+
+// Volume patterns
+const VOLUME_PATTERNS = [
+  /volume.*?([\d,.]+[KMB]?)/gi,
+  /24h.*?vol.*?([\d,.]+[KMB]?)/gi,
+];
+
+// Change patterns
+const CHANGE_PATTERNS = [
+  /24h.*?([+-]?\d+\.?\d*%)/gi,
+  /change.*?([+-]?\d+\.?\d*%)/gi,
+];
+
+// APY/APR patterns
+const APY_PATTERNS = [
+  /(\d+\.?\d*%)\s*(?:APY|APR)/gi,
+  /(?:APY|APR).*?(\d+\.?\d*%)/gi,
+];
+
+// Liquidity patterns
+const LIQUIDITY_PATTERNS = [
+  /liquidity.*?\$?([\d,.]+[KMB]?)/gi,
+  /TVL.*?\$?([\d,.]+[KMB]?)/gi,
+];
+
+// Staking patterns
+const STAKING_PATTERNS = [
+  /staking.*?(\d+\.?\d*)/gi,
+  /rewards.*?(\d+\.?\d*)\s*(?:ETH|%)/gi,
+];
+
+// Look for transaction status indicators
+const STATUS_PATTERNS = [
+  /status.*?(success|failed|pending|confirmed)/gi,
+  /(success|failed|pending|confirmed)/gi,
+];
+
+const CONFIRMATION_PATTERNS = [
+  /(\d+)\s*(?:confirmations?|blocks?)/gi,
+];
+
+const TX_GAS_PATTERNS = [
+  /gas\s*used.*?(\d+\.?\d*)/gi,
+  /transaction\s*fee.*?(\d+\.?\d*\s*ETH)/gi,
+];
+
+
 // Tool implementations
 export const getGasPrice: Tool = {
   schema: {
@@ -94,13 +170,6 @@ export const getGasPrice: Tool = {
       .map((c) => (c as any).text)
       .join("\n");
 
-    // Gas price patterns (common on Etherscan, exchanges, wallets)
-    const gasPatterns = [
-      /(?:slow|low|standard|average|fast|rapid).*?(\d+\.?\d*)\s*gwei/gi,
-      /gas.*?(\d+\.?\d*)\s*gwei/gi,
-      /(\d+\.?\d*)\s*gwei/gi,
-    ];
-
     const gasPrices: { type: string; value: string }[] = [];
     const lines = snapshotText.split("\n");
 
@@ -115,7 +184,7 @@ export const getGasPrice: Tool = {
         gasType = "fast";
       }
 
-      for (const pattern of gasPatterns) {
+      for (const pattern of GAS_PATTERNS) {
         const match = line.match(pattern);
         if (match) {
           gasPrices.push({
@@ -162,22 +231,10 @@ export const getEthBalance: Tool = {
       .map((c) => (c as any).text)
       .join("\n");
 
-    // Balance patterns
-    const balancePatterns = [
-      /(\d+\.?\d*)\s*ETH/gi,
-      /balance.*?(\d+\.?\d*)\s*ETH/gi,
-      /ETH.*?(\d+\.?\d*)/gi,
-    ];
-
-    const usdPatterns = [
-      /\$[\d,]+\.?\d*/g,
-      /USD.*?[\d,]+\.?\d*/gi,
-    ];
-
     const balances: string[] = [];
     const usdValues: string[] = [];
 
-    for (const pattern of balancePatterns) {
+    for (const pattern of BALANCE_PATTERNS) {
       const matches = snapshotText.match(pattern);
       if (matches) {
         balances.push(...matches);
@@ -185,13 +242,11 @@ export const getEthBalance: Tool = {
     }
 
     if (includeTokens) {
-      // Look for ERC-20 token balances
-      const tokenPattern = /(\d+\.?\d*)\s*([A-Z]{2,10})\b/g;
-      const tokens = snapshotText.match(tokenPattern) || [];
+      const tokens = snapshotText.match(TOKEN_PATTERN) || [];
       balances.push(...tokens.filter(t => !t.includes('ETH')));
     }
 
-    for (const pattern of usdPatterns) {
+    for (const pattern of USD_PATTERNS) {
       const matches = snapshotText.match(pattern);
       if (matches) {
         usdValues.push(...matches.slice(0, 3)); // Limit to first 3 USD values
@@ -246,39 +301,21 @@ export const getEthPairData: Tool = {
       change: [],
     };
 
-    // Price patterns
-    const pricePatterns = [
-      /price.*?(\d+\.?\d*)/gi,
-      /(\d+\.\d{2,})\s*(?:USDT|USD|BTC)/gi,
-    ];
-
-    // Volume patterns
-    const volumePatterns = [
-      /volume.*?([\d,.]+[KMB]?)/gi,
-      /24h.*?vol.*?([\d,.]+[KMB]?)/gi,
-    ];
-
-    // Change patterns
-    const changePatterns = [
-      /24h.*?([+-]?\d+\.?\d*%)/gi,
-      /change.*?([+-]?\d+\.?\d*%)/gi,
-    ];
-
-    for (const pattern of pricePatterns) {
+    for (const pattern of PRICE_PATTERNS) {
       const matches = snapshotText.match(pattern);
       if (matches) {
         pairData.price.push(...matches.slice(0, 3));
       }
     }
 
-    for (const pattern of volumePatterns) {
+    for (const pattern of VOLUME_PATTERNS) {
       const matches = snapshotText.match(pattern);
       if (matches) {
         pairData.volume.push(...matches.slice(0, 3));
       }
     }
 
-    for (const pattern of changePatterns) {
+    for (const pattern of CHANGE_PATTERNS) {
       const matches = snapshotText.match(pattern);
       if (matches) {
         pairData.change.push(...matches.slice(0, 3));
@@ -333,26 +370,8 @@ export const getDeFiData: Tool = {
       staking: [],
     };
 
-    // APY/APR patterns
-    const apyPatterns = [
-      /(\d+\.?\d*%)\s*(?:APY|APR)/gi,
-      /(?:APY|APR).*?(\d+\.?\d*%)/gi,
-    ];
-
-    // Liquidity patterns
-    const liquidityPatterns = [
-      /liquidity.*?\$?([\d,.]+[KMB]?)/gi,
-      /TVL.*?\$?([\d,.]+[KMB]?)/gi,
-    ];
-
-    // Staking patterns
-    const stakingPatterns = [
-      /staking.*?(\d+\.?\d*)/gi,
-      /rewards.*?(\d+\.?\d*)\s*(?:ETH|%)/gi,
-    ];
-
     if (dataType === "apy" || dataType === "all") {
-      for (const pattern of apyPatterns) {
+      for (const pattern of APY_PATTERNS) {
         const matches = snapshotText.match(pattern);
         if (matches) {
           defiData.apy.push(...matches.slice(0, 5));
@@ -361,7 +380,7 @@ export const getDeFiData: Tool = {
     }
 
     if (dataType === "liquidity" || dataType === "all") {
-      for (const pattern of liquidityPatterns) {
+      for (const pattern of LIQUIDITY_PATTERNS) {
         const matches = snapshotText.match(pattern);
         if (matches) {
           defiData.liquidity.push(...matches.slice(0, 5));
@@ -370,7 +389,7 @@ export const getDeFiData: Tool = {
     }
 
     if (dataType === "staking" || dataType === "all") {
-      for (const pattern of stakingPatterns) {
+      for (const pattern of STAKING_PATTERNS) {
         const matches = snapshotText.match(pattern);
         if (matches) {
           defiData.staking.push(...matches.slice(0, 5));
@@ -424,26 +443,11 @@ export const monitorEthTransaction: Tool = {
       .map((c) => (c as any).text)
       .join("\n");
 
-    // Look for transaction status indicators
-    const statusPatterns = [
-      /status.*?(success|failed|pending|confirmed)/gi,
-      /(success|failed|pending|confirmed)/gi,
-    ];
-
-    const confirmationPatterns = [
-      /(\d+)\s*(?:confirmations?|blocks?)/gi,
-    ];
-
-    const gasPatterns = [
-      /gas\s*used.*?(\d+\.?\d*)/gi,
-      /transaction\s*fee.*?(\d+\.?\d*\s*ETH)/gi,
-    ];
-
     let status = "unknown";
     let confirmations = "0";
     let gasUsed = "N/A";
 
-    for (const pattern of statusPatterns) {
+    for (const pattern of STATUS_PATTERNS) {
       const match = snapshotText.match(pattern);
       if (match) {
         status = match[0];
@@ -451,7 +455,7 @@ export const monitorEthTransaction: Tool = {
       }
     }
 
-    for (const pattern of confirmationPatterns) {
+    for (const pattern of CONFIRMATION_PATTERNS) {
       const match = snapshotText.match(pattern);
       if (match) {
         confirmations = match[0];
@@ -459,7 +463,7 @@ export const monitorEthTransaction: Tool = {
       }
     }
 
-    for (const pattern of gasPatterns) {
+    for (const pattern of TX_GAS_PATTERNS) {
       const match = snapshotText.match(pattern);
       if (match) {
         gasUsed = match[0];

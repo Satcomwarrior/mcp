@@ -2,6 +2,11 @@
  * Trading-specific utilities for price parsing, validation, and formatting
  */
 
+const CURRENCY_SYMBOLS = /[$€£¥₿]/g;
+const CURRENCY_CODES = /USD|EUR|GBP|JPY|BTC|ETH|USDT/gi;
+const DOT_GLOBAL = /\./g;
+const COMMA_GLOBAL = /,/g;
+
 /**
  * Parse price strings from various formats
  * Handles: $1,234.56, 1234.56 USD, 1.234,56 EUR, etc.
@@ -11,8 +16,8 @@ export function parsePrice(priceString: string): number | null {
   
   // Remove common currency symbols and text
   let cleaned = priceString
-    .replace(/[$€£¥₿]/g, "")
-    .replace(/USD|EUR|GBP|JPY|BTC|ETH|USDT/gi, "")
+    .replace(CURRENCY_SYMBOLS, "")
+    .replace(CURRENCY_CODES, "")
     .trim();
   
   // Handle both comma and dot as decimal separator
@@ -26,10 +31,10 @@ export function parsePrice(priceString: string): number | null {
     
     if (lastComma > lastDot) {
       // European format: 1.234,56
-      cleaned = cleaned.replace(/\./g, "").replace(",", ".");
+      cleaned = cleaned.replace(DOT_GLOBAL, "").replace(",", ".");
     } else {
       // US format: 1,234.56
-      cleaned = cleaned.replace(/,/g, "");
+      cleaned = cleaned.replace(COMMA_GLOBAL, "");
     }
   } else if (hasComma) {
     // Could be either 1,234 (thousands) or 1,23 (decimal)
@@ -39,7 +44,7 @@ export function parsePrice(priceString: string): number | null {
       cleaned = cleaned.replace(",", ".");
     } else {
       // Likely thousands: 1,234 or 1,234,567
-      cleaned = cleaned.replace(/,/g, "");
+      cleaned = cleaned.replace(COMMA_GLOBAL, "");
     }
   }
   
@@ -126,10 +131,12 @@ export function calculateChange(
 /**
  * Validate trading symbol format
  */
+const SYMBOL_PATTERN = /^[A-Z0-9]{1,10}$/;
+
 export function validateSymbol(symbol: string): boolean {
   // Allow alphanumeric symbols, typically 1-10 characters, uppercase
   // Examples: AAPL, BTC, BTCUSDT, SPY, etc.
-  return /^[A-Z0-9]{1,10}$/.test(symbol);
+  return SYMBOL_PATTERN.test(symbol);
 }
 
 /**
@@ -151,8 +158,10 @@ export function isSignificantChange(
 /**
  * Extract numeric value from percentage strings
  */
+const PERCENT_SYMBOL = /%/g;
+
 export function parsePercentage(percentString: string): number | null {
-  const cleaned = percentString.replace(/%/g, "").trim();
+  const cleaned = percentString.replace(PERCENT_SYMBOL, "").trim();
   const parsed = parseFloat(cleaned);
   return isNaN(parsed) ? null : parsed;
 }
@@ -160,10 +169,12 @@ export function parsePercentage(percentString: string): number | null {
 /**
  * Parse volume strings (handles K, M, B suffixes)
  */
+const VOLUME_CLEAN = /[^0-9.KMB]/gi;
+
 export function parseVolume(volumeString: string): number | null {
   if (!volumeString) return null;
   
-  const cleaned = volumeString.replace(/[^0-9.KMB]/gi, "").toUpperCase();
+  const cleaned = volumeString.replace(VOLUME_CLEAN, "").toUpperCase();
   const multipliers: Record<string, number> = {
     K: 1000,
     M: 1000000,
