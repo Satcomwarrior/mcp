@@ -13,15 +13,21 @@ export async function isPortInUse(port: number): Promise<boolean> {
 }
 
 export function killProcessOnPort(port: number) {
+  // Validate port is a safe integer and within valid range to prevent command injection
+  const portNum = Number(port);
+  if (!Number.isInteger(portNum) || portNum < 0 || portNum > 65535) {
+    throw new Error(`Invalid port number: ${port}`);
+  }
+
   try {
     if (process.platform === "win32") {
       execSync(
-        `FOR /F "tokens=5" %a in ('netstat -ano ^| findstr :${port}') do taskkill /F /PID %a`,
+        `FOR /F "tokens=5" %a in ('netstat -ano ^| findstr :${portNum}') do taskkill /F /PID %a`,
       );
     } else {
-      execSync(`lsof -ti:${port} | xargs kill -9`);
+      execSync(`lsof -ti:${portNum} | xargs kill -9`);
     }
   } catch (error) {
-    console.error(`Failed to kill process on port ${port}:`, error);
+    console.error(`Failed to kill process on port ${portNum}:`, error);
   }
 }

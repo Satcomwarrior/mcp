@@ -1,0 +1,4 @@
+## 2024-05-23 - Command Injection in Utility Functions
+**Vulnerability:** Found a Command Injection vulnerability in `killProcessOnPort` within `src/utils/port.ts`. The function directly interpolated the `port` argument into a shell command (`lsof -ti:${port} | xargs kill -9`) without runtime validation. While typed as `number`, it could be exploited if called with a malicious string (e.g., via `any` cast or from JS).
+**Learning:** TypeScript types do not guarantee runtime safety for security-critical operations like shell command execution. The application relied solely on static typing.
+**Prevention:** Always implement strict runtime validation for inputs used in `exec`, `execSync`, or `spawn` calls. Validate that numeric inputs are actually safe integers within expected ranges before usage.
