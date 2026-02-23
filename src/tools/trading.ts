@@ -336,6 +336,17 @@ export const setPriceAlert: Tool = {
   },
 };
 
+const MARKET_DATA_PATTERNS: Record<string, RegExp> = {
+  price: /(?:[\$][\d,]+\.?\d*)|(?:Price:\s*[\d,]+\.?\d*)/gi,
+  volume: /(?:Volume:\s*[\d,]+\.?\d*[KMB]?)|(?:Vol:\s*[\d,]+\.?\d*[KMB]?)/gi,
+  market_cap:
+    /(?:Market Cap:\s*[\d,]+\.?\d*[KMB]?)|(?:Mkt Cap:\s*[\d,]+\.?\d*[KMB]?)/gi,
+  change_24h:
+    /(?:24h:\s*[+-]?[\d,]+\.?\d*%?)|(?:Change:\s*[+-]?[\d,]+\.?\d*%?)/gi,
+  high_24h: /(?:High:\s*[\d,]+\.?\d*)|(?:24h High:\s*[\d,]+\.?\d*)/gi,
+  low_24h: /(?:Low:\s*[\d,]+\.?\d*)|(?:24h Low:\s*[\d,]+\.?\d*)/gi,
+};
+
 export const getMarketData: Tool = {
   schema: {
     name: GetMarketDataTool.shape.name.value,
@@ -353,33 +364,19 @@ export const getMarketData: Tool = {
     
     const marketData: Record<string, string[]> = {};
     
-    const patterns: Record<string, RegExp[]> = {
-      price: [/\$[\d,]+\.?\d*/g, /Price:\s*[\d,]+\.?\d*/gi],
-      volume: [/Volume:\s*[\d,]+\.?\d*[KMB]?/gi, /Vol:\s*[\d,]+\.?\d*[KMB]?/gi],
-      market_cap: [/Market Cap:\s*[\d,]+\.?\d*[KMB]?/gi, /Mkt Cap:\s*[\d,]+\.?\d*[KMB]?/gi],
-      change_24h: [/24h:\s*[+-]?[\d,]+\.?\d*%?/gi, /Change:\s*[+-]?[\d,]+\.?\d*%?/gi],
-      high_24h: [/High:\s*[\d,]+\.?\d*/gi, /24h High:\s*[\d,]+\.?\d*/gi],
-      low_24h: [/Low:\s*[\d,]+\.?\d*/gi, /24h Low:\s*[\d,]+\.?\d*/gi],
-    };
-    
     const requestedPoints = dataPoints.includes("all")
-      ? Object.keys(patterns)
+      ? Object.keys(MARKET_DATA_PATTERNS)
       : dataPoints;
     
     for (const point of requestedPoints) {
       if (point === "all") continue;
-      const pointPatterns = patterns[point as keyof typeof patterns] || [];
-      const matches: string[] = [];
       
-      for (const pattern of pointPatterns) {
-        const found = snapshotText.match(pattern);
-        if (found) {
-          matches.push(...found);
-        }
-      }
+      const pattern = MARKET_DATA_PATTERNS[point];
+      if (!pattern) continue;
       
-      if (matches.length > 0) {
-        marketData[point] = [...new Set(matches)];
+      const found = snapshotText.match(pattern);
+      if (found && found.length > 0) {
+        marketData[point] = [...new Set(found)];
       }
     }
     
