@@ -1,5 +1,8 @@
-import { execSync } from "node:child_process";
+import { exec } from "node:child_process";
 import net from "node:net";
+import { promisify } from "node:util";
+
+const execAsync = promisify(exec);
 
 /**
  * Validates that a port is a valid integer between 0 and 65535.
@@ -26,15 +29,15 @@ export async function isPortInUse(port: number): Promise<boolean> {
   });
 }
 
-export function killProcessOnPort(port: number) {
+export async function killProcessOnPort(port: number) {
   validatePort(port);
   try {
     if (process.platform === "win32") {
-      execSync(
+      await execAsync(
         `FOR /F "tokens=5" %a in ('netstat -ano ^| findstr :${port}') do taskkill /F /PID %a`,
       );
     } else {
-      execSync(`lsof -ti:${port} | xargs kill -9`);
+      await execAsync(`lsof -ti:${port} | xargs kill -9`);
     }
   } catch (error) {
     console.error(`Failed to kill process on port ${port}:`, error);
