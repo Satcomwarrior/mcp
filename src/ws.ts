@@ -8,7 +8,7 @@ import { isPortInUse, killProcessOnPort } from "@/utils/port";
 export async function createWebSocketServer(
   port: number = mcpConfig.defaultWsPort,
 ): Promise<WebSocketServer> {
-  killProcessOnPort(port);
+  await killProcessOnPort(port);
   // Wait until the port is free
   while (await isPortInUse(port)) {
     await wait(100);
