@@ -3,6 +3,7 @@ import { zodToJsonSchema } from "zod-to-json-schema";
 
 import type { Context } from "@/context";
 import { captureAriaSnapshot } from "@/utils/aria-snapshot";
+import { extractMatches } from "@/utils/regex";
 
 import type { Tool } from "./tool";
 
@@ -192,9 +193,9 @@ export const getEthBalance: Tool = {
     }
 
     for (const pattern of usdPatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        usdValues.push(...matches.slice(0, 3)); // Limit to first 3 USD values
+      const matches = extractMatches(snapshotText, pattern, 3);
+      if (matches.length > 0) {
+        usdValues.push(...matches);
       }
     }
 
@@ -265,23 +266,23 @@ export const getEthPairData: Tool = {
     ];
 
     for (const pattern of pricePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        pairData.price.push(...matches.slice(0, 3));
+      const matches = extractMatches(snapshotText, pattern, 3);
+      if (matches.length > 0) {
+        pairData.price.push(...matches);
       }
     }
 
     for (const pattern of volumePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        pairData.volume.push(...matches.slice(0, 3));
+      const matches = extractMatches(snapshotText, pattern, 3);
+      if (matches.length > 0) {
+        pairData.volume.push(...matches);
       }
     }
 
     for (const pattern of changePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        pairData.change.push(...matches.slice(0, 3));
+      const matches = extractMatches(snapshotText, pattern, 3);
+      if (matches.length > 0) {
+        pairData.change.push(...matches);
       }
     }
 
@@ -353,27 +354,27 @@ export const getDeFiData: Tool = {
 
     if (dataType === "apy" || dataType === "all") {
       for (const pattern of apyPatterns) {
-        const matches = snapshotText.match(pattern);
-        if (matches) {
-          defiData.apy.push(...matches.slice(0, 5));
+        const matches = extractMatches(snapshotText, pattern, 5);
+        if (matches.length > 0) {
+          defiData.apy.push(...matches);
         }
       }
     }
 
     if (dataType === "liquidity" || dataType === "all") {
       for (const pattern of liquidityPatterns) {
-        const matches = snapshotText.match(pattern);
-        if (matches) {
-          defiData.liquidity.push(...matches.slice(0, 5));
+        const matches = extractMatches(snapshotText, pattern, 5);
+        if (matches.length > 0) {
+          defiData.liquidity.push(...matches);
         }
       }
     }
 
     if (dataType === "staking" || dataType === "all") {
       for (const pattern of stakingPatterns) {
-        const matches = snapshotText.match(pattern);
-        if (matches) {
-          defiData.staking.push(...matches.slice(0, 5));
+        const matches = extractMatches(snapshotText, pattern, 5);
+        if (matches.length > 0) {
+          defiData.staking.push(...matches);
         }
       }
     }
