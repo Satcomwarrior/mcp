@@ -177,11 +177,11 @@ export const getEthBalance: Tool = {
     const balances: string[] = [];
     const usdValues: string[] = [];
 
-    for (const pattern of balancePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        balances.push(...matches);
-      }
+    // Optimize: Combine patterns to avoid repeated scans
+    const combinedBalancePattern = new RegExp(balancePatterns.map((p) => p.source).join("|"), "gi");
+    const matches = snapshotText.match(combinedBalancePattern);
+    if (matches) {
+      balances.push(...matches);
     }
 
     if (includeTokens) {
