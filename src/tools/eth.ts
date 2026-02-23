@@ -6,6 +6,13 @@ import { captureAriaSnapshot } from "@/utils/aria-snapshot";
 
 import type { Tool } from "./tool";
 
+// Gas price patterns (common on Etherscan, exchanges, wallets)
+const GAS_PATTERNS = [
+  /(?:slow|low|standard|average|fast|rapid).*?(\d+\.?\d*)\s*gwei/gi,
+  /gas.*?(\d+\.?\d*)\s*gwei/gi,
+  /(\d+\.?\d*)\s*gwei/gi,
+];
+
 // ETH-specific tool schemas
 const GetGasPriceTool = z.object({
   name: z.literal("browser_get_gas_price"),
@@ -94,17 +101,15 @@ export const getGasPrice: Tool = {
       .map((c) => (c as any).text)
       .join("\n");
 
-    // Gas price patterns (common on Etherscan, exchanges, wallets)
-    const gasPatterns = [
-      /(?:slow|low|standard|average|fast|rapid).*?(\d+\.?\d*)\s*gwei/gi,
-      /gas.*?(\d+\.?\d*)\s*gwei/gi,
-      /(\d+\.?\d*)\s*gwei/gi,
-    ];
-
     const gasPrices: { type: string; value: string }[] = [];
     const lines = snapshotText.split("\n");
 
+    // Pre-compile regex for fast filtering
+    const gweiCheck = /gwei/i;
+
     for (const line of lines) {
+      if (!gweiCheck.test(line)) continue;
+
       const lowerLine = line.toLowerCase();
       
       // Try to identify gas price type
@@ -115,7 +120,7 @@ export const getGasPrice: Tool = {
         gasType = "fast";
       }
 
-      for (const pattern of gasPatterns) {
+      for (const pattern of GAS_PATTERNS) {
         const match = line.match(pattern);
         if (match) {
           gasPrices.push({
