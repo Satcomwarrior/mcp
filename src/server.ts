@@ -7,8 +7,8 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 
 import { Context } from "@/context";
-import type { Resource } from "@/resources/resource";
-import type { Tool } from "@/tools/tool";
+import type { Resource, ResourceSchema } from "@/resources/resource";
+import type { Tool, ToolSchema } from "@/tools/tool";
 import { createWebSocketServer } from "@/ws";
 
 type Options = {
@@ -31,6 +31,28 @@ export async function createServerWithTools(options: Options): Promise<Server> {
     },
   );
 
+  // Optimization: Use Map for O(1) lookup instead of Array.find (O(N))
+  // Pre-calculate schemas to avoid mapping on every request
+  const toolsMap = new Map<string, Tool>();
+  const toolSchemas: ToolSchema[] = [];
+  for (const tool of tools) {
+    // First match wins to preserve Array.find behavior
+    if (!toolsMap.has(tool.schema.name)) {
+      toolsMap.set(tool.schema.name, tool);
+      toolSchemas.push(tool.schema);
+    }
+  }
+
+  const resourcesMap = new Map<string, Resource>();
+  const resourceSchemas: ResourceSchema[] = [];
+  for (const resource of resources) {
+    // First match wins to preserve Array.find behavior
+    if (!resourcesMap.has(resource.schema.uri)) {
+      resourcesMap.set(resource.schema.uri, resource);
+      resourceSchemas.push(resource.schema);
+    }
+  }
+
   const wss = await createWebSocketServer();
   wss.on("connection", (websocket) => {
     // Close any existing connections
@@ -41,15 +63,15 @@ export async function createServerWithTools(options: Options): Promise<Server> {
   });
 
   server.setRequestHandler(ListToolsRequestSchema, async () => {
-    return { tools: tools.map((tool) => tool.schema) };
+    return { tools: toolSchemas };
   });
 
   server.setRequestHandler(ListResourcesRequestSchema, async () => {
-    return { resources: resources.map((resource) => resource.schema) };
+    return { resources: resourceSchemas };
   });
 
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    const tool = tools.find((tool) => tool.schema.name === request.params.name);
+    const tool = toolsMap.get(request.params.name);
     if (!tool) {
       return {
         content: [
@@ -71,9 +93,7 @@ export async function createServerWithTools(options: Options): Promise<Server> {
   });
 
   server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
-    const resource = resources.find(
-      (resource) => resource.schema.uri === request.params.uri,
-    );
+    const resource = resourcesMap.get(request.params.uri);
     if (!resource) {
       return { contents: [] };
     }
