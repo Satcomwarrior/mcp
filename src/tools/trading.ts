@@ -123,6 +123,13 @@ const GetMarketDataTool = z.object({
   }),
 });
 
+// Optimized regex patterns for price extraction
+// Group 1: Patterns starting with distinct non-digit characters ($, P, Q, L)
+const PRICE_PATTERN_GROUP_1 =
+  /(?:\$\d[\d,]*\.?\d*)|(?:Price:\s*\d[\d,]*\.?\d*)|(?:Quote:\s*\d[\d,]*\.?\d*)|(?:Last:\s*\d[\d,]*\.?\d*)/gi;
+// Group 2: Patterns starting with digits but ending with USD
+const PRICE_PATTERN_GROUP_2 = /\d[\d,]*\.?\d*\s*USD/gi;
+
 // Tool implementations
 export const getPrice: Tool = {
   schema: {
@@ -132,33 +139,32 @@ export const getPrice: Tool = {
   },
   handle: async (context: Context, params) => {
     const { selector } = GetPriceTool.shape.arguments.parse(params);
-    
+
     // Get page snapshot to analyze
     const snapshot = await captureAriaSnapshot(context);
-    
+
     // Look for price in the snapshot content
     const snapshotText = snapshot.content
       .filter((c) => c.type === "text")
       .map((c) => (c as any).text)
       .join("\n");
-    
+
     // Common price patterns - ensure at least one digit
-    const pricePatterns = [
-      /\$\d[\d,]*\.?\d*/g,
-      /\d[\d,]*\.?\d*\s*USD/gi,
-      /Price:\s*\d[\d,]*\.?\d*/gi,
-      /Quote:\s*\d[\d,]*\.?\d*/gi,
-      /Last:\s*\d[\d,]*\.?\d*/gi,
-    ];
-    
+    // Optimized into two regex passes to reduce scanning overhead while preserving overlapping matches
+    // (e.g., "Price: 100 USD" should match both "Price: 100" and "100 USD")
+
     const prices: string[] = [];
-    for (const pattern of pricePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        prices.push(...matches);
-      }
+
+    const matches1 = snapshotText.match(PRICE_PATTERN_GROUP_1);
+    if (matches1) {
+      prices.push(...matches1);
     }
-    
+
+    const matches2 = snapshotText.match(PRICE_PATTERN_GROUP_2);
+    if (matches2) {
+      prices.push(...matches2);
+    }
+
     const uniquePrices = [...new Set(prices)];
     
     return {
