@@ -4,6 +4,22 @@ import { captureAriaSnapshot } from "@/utils/aria-snapshot";
 import type { Resource } from "./resource";
 
 /**
+ * Regex constants for trading data extraction
+ */
+const WATCHLIST_SYMBOL_PATTERN = /\b[A-Z]{2,5}\b/g;
+const WATCHLIST_PRICE_PATTERN = /\$[\d,]+\.?\d*/g;
+
+const POSITION_KEYWORDS_REGEX =
+  /position|holdings|quantity|qty|shares|coins|P&L|profit|loss/i;
+
+const MARKET_PATTERNS = {
+  indices: /\b(DOW|NASDAQ|S&P\s*500|SP500|DJI|IXIC|SPX)\b/gi,
+  prices: /\$[\d,]+\.?\d*/g,
+  changes: /[+-][\d,]+\.?\d*%/g,
+  volume: /Vol:\s*[\d,]+\.?\d*[KMB]?/gi,
+};
+
+/**
  * Trading watchlist resource
  * Provides access to monitored trading symbols and their current status
  */
@@ -23,11 +39,8 @@ export const watchlist: Resource = {
       .join("\n");
 
     // Extract potential watchlist items
-    const symbolPattern = /\b[A-Z]{2,5}\b/g;
-    const pricePattern = /\$[\d,]+\.?\d*/g;
-    
-    const symbols = snapshotText.match(symbolPattern) || [];
-    const prices = snapshotText.match(pricePattern) || [];
+    const symbols = snapshotText.match(WATCHLIST_SYMBOL_PATTERN) || [];
+    const prices = snapshotText.match(WATCHLIST_PRICE_PATTERN) || [];
     
     const watchlistData = {
       timestamp: new Date().toISOString(),
@@ -65,24 +78,11 @@ export const positions: Resource = {
       .join("\n");
 
     // Look for position-related data
-    const positionKeywords = [
-      "position",
-      "holdings",
-      "quantity",
-      "qty",
-      "shares",
-      "coins",
-      "P&L",
-      "profit",
-      "loss",
-    ];
-
     const positionLines: string[] = [];
     const lines = snapshotText.split("\n");
 
     for (const line of lines) {
-      const lowerLine = line.toLowerCase();
-      if (positionKeywords.some((keyword) => lowerLine.includes(keyword))) {
+      if (POSITION_KEYWORDS_REGEX.test(line)) {
         positionLines.push(line.trim());
       }
     }
@@ -122,16 +122,9 @@ export const marketSummary: Resource = {
       .join("\n");
 
     // Extract market indices and major data points
-    const marketPatterns = {
-      indices: /\b(DOW|NASDAQ|S&P\s*500|SP500|DJI|IXIC|SPX)\b/gi,
-      prices: /\$[\d,]+\.?\d*/g,
-      changes: /[+-][\d,]+\.?\d*%/g,
-      volume: /Vol:\s*[\d,]+\.?\d*[KMB]?/gi,
-    };
-
     const marketData: Record<string, string[]> = {};
-    
-    for (const [key, pattern] of Object.entries(marketPatterns)) {
+
+    for (const [key, pattern] of Object.entries(MARKET_PATTERNS)) {
       const matches = snapshotText.match(pattern);
       if (matches) {
         marketData[key] = [...new Set(matches)].slice(0, 10);
