@@ -1,5 +1,6 @@
 import type { Context } from "@/context";
 import { captureAriaSnapshot } from "@/utils/aria-snapshot";
+import { filterLinesByKeywords } from "@/utils/trading";
 
 import type { Resource } from "./resource";
 
@@ -77,15 +78,9 @@ export const positions: Resource = {
       "loss",
     ];
 
-    const positionLines: string[] = [];
     const lines = snapshotText.split("\n");
-
-    for (const line of lines) {
-      const lowerLine = line.toLowerCase();
-      if (positionKeywords.some((keyword) => lowerLine.includes(keyword))) {
-        positionLines.push(line.trim());
-      }
-    }
+    // Use optimized regex filter instead of loop + toLowerCase
+    const positionLines = filterLinesByKeywords(lines, positionKeywords);
 
     const positionsData = {
       timestamp: new Date().toISOString(),
