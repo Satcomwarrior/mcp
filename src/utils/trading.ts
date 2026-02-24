@@ -182,3 +182,27 @@ export function parseVolume(volumeString: string): number | null {
   
   return num;
 }
+
+/**
+ * Filter lines containing any of the given keywords (case-insensitive)
+ * Uses optimized RegExp for performance instead of repeated loop scanning
+ *
+ * @param lines The lines to filter
+ * @param keywords The keywords to search for
+ * @returns Filtered lines that contain at least one keyword
+ */
+export function filterLinesByKeywords(lines: string[], keywords: string[]): string[] {
+  if (keywords.length === 0) return [];
+
+  // Escape special regex chars
+  const escaped = keywords.map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  const pattern = new RegExp(escaped.join("|"), "i");
+
+  const result: string[] = [];
+  for (const line of lines) {
+    if (pattern.test(line)) {
+      result.push(line.trim());
+    }
+  }
+  return result;
+}

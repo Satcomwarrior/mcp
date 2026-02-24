@@ -3,6 +3,7 @@ import { zodToJsonSchema } from "zod-to-json-schema";
 
 import type { Context } from "@/context";
 import { captureAriaSnapshot } from "@/utils/aria-snapshot";
+import { filterLinesByKeywords } from "@/utils/trading";
 
 import type { Tool } from "./tool";
 
@@ -291,15 +292,9 @@ export const getPortfolio: Tool = {
       "PnL",
     ];
     
-    const portfolioInfo: string[] = [];
     const lines = snapshotText.split("\n");
-    
-    for (const line of lines) {
-      const lowerLine = line.toLowerCase();
-      if (portfolioKeywords.some((keyword) => lowerLine.includes(keyword.toLowerCase()))) {
-        portfolioInfo.push(line.trim());
-      }
-    }
+    // Use optimized regex filter
+    const portfolioInfo = filterLinesByKeywords(lines, portfolioKeywords);
     
     return {
       content: [
