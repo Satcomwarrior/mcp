@@ -92,19 +92,29 @@ export function validatePrice(price: string | number): {
 /**
  * Format price for display
  */
+const formatters = new Map<string, Intl.NumberFormat>();
+
 export function formatPrice(price: number, currency = "USD"): string {
   if (currency === "BTC" || currency === "ETH") {
     return `${price.toFixed(8)} ${currency}`;
   }
   
   const maxDecimals = (currency === "USDT" || currency === "USD" || currency === "EUR" || currency === "GBP") ? 2 : 8;
+  const currencyKey = currency === "USDT" ? "USD" : currency;
+  const key = `${currencyKey}-${maxDecimals}`;
+
+  let formatter = formatters.get(key);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currencyKey,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: maxDecimals,
+    });
+    formatters.set(key, formatter);
+  }
   
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: currency === "USDT" ? "USD" : currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: maxDecimals,
-  }).format(price);
+  return formatter.format(price);
 }
 
 /**
