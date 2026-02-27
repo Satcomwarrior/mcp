@@ -9,6 +9,7 @@ import {
 } from "@repo/types/mcp/tool";
 
 import { captureAriaSnapshot } from "@/utils/aria-snapshot";
+import { validateUrl } from "@/utils/url";
 
 import type { Tool, ToolFactory } from "./tool";
 
@@ -20,6 +21,10 @@ export const navigate: ToolFactory = (snapshot) => ({
   },
   handle: async (context, params) => {
     const { url } = NavigateTool.shape.arguments.parse(params);
+
+    // Security check: Ensure URL is valid and uses allowed protocols
+    validateUrl(url);
+
     await context.sendSocketMessage("browser_navigate", { url });
     if (snapshot) {
       return captureAriaSnapshot(context);
