@@ -3,6 +3,7 @@ import { zodToJsonSchema } from "zod-to-json-schema";
 
 import type { Context } from "@/context";
 import { captureAriaSnapshot } from "@/utils/aria-snapshot";
+import { extractMatches } from "@/utils/regex";
 
 import type { Tool } from "./tool";
 
@@ -178,24 +179,19 @@ export const getEthBalance: Tool = {
     const usdValues: string[] = [];
 
     for (const pattern of balancePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        balances.push(...matches);
-      }
+      // Extract enough matches to ensure we get 10 *unique* balances after Set deduplication
+      balances.push(...extractMatches(snapshotText, pattern, 20));
     }
 
     if (includeTokens) {
       // Look for ERC-20 token balances
       const tokenPattern = /(\d+\.?\d*)\s*([A-Z]{2,10})\b/g;
-      const tokens = snapshotText.match(tokenPattern) || [];
+      const tokens = extractMatches(snapshotText, tokenPattern, 20);
       balances.push(...tokens.filter(t => !t.includes('ETH')));
     }
 
     for (const pattern of usdPatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        usdValues.push(...matches.slice(0, 3)); // Limit to first 3 USD values
-      }
+      usdValues.push(...extractMatches(snapshotText, pattern, 10)); // Extract a few more to ensure 5 unique USD values
     }
 
     const uniqueBalances = [...new Set(balances)].slice(0, 10);
@@ -265,24 +261,15 @@ export const getEthPairData: Tool = {
     ];
 
     for (const pattern of pricePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        pairData.price.push(...matches.slice(0, 3));
-      }
+      pairData.price.push(...extractMatches(snapshotText, pattern, 10));
     }
 
     for (const pattern of volumePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        pairData.volume.push(...matches.slice(0, 3));
-      }
+      pairData.volume.push(...extractMatches(snapshotText, pattern, 10));
     }
 
     for (const pattern of changePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        pairData.change.push(...matches.slice(0, 3));
-      }
+      pairData.change.push(...extractMatches(snapshotText, pattern, 10));
     }
 
     let result = `Trading Pair Data for ${pair}:\n`;
@@ -353,28 +340,19 @@ export const getDeFiData: Tool = {
 
     if (dataType === "apy" || dataType === "all") {
       for (const pattern of apyPatterns) {
-        const matches = snapshotText.match(pattern);
-        if (matches) {
-          defiData.apy.push(...matches.slice(0, 5));
-        }
+        defiData.apy.push(...extractMatches(snapshotText, pattern, 15));
       }
     }
 
     if (dataType === "liquidity" || dataType === "all") {
       for (const pattern of liquidityPatterns) {
-        const matches = snapshotText.match(pattern);
-        if (matches) {
-          defiData.liquidity.push(...matches.slice(0, 5));
-        }
+        defiData.liquidity.push(...extractMatches(snapshotText, pattern, 15));
       }
     }
 
     if (dataType === "staking" || dataType === "all") {
       for (const pattern of stakingPatterns) {
-        const matches = snapshotText.match(pattern);
-        if (matches) {
-          defiData.staking.push(...matches.slice(0, 5));
-        }
+        defiData.staking.push(...extractMatches(snapshotText, pattern, 15));
       }
     }
 

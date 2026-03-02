@@ -3,6 +3,7 @@ import { zodToJsonSchema } from "zod-to-json-schema";
 
 import type { Context } from "@/context";
 import { captureAriaSnapshot } from "@/utils/aria-snapshot";
+import { extractMatches } from "@/utils/regex";
 
 import type { Tool } from "./tool";
 
@@ -153,10 +154,7 @@ export const getPrice: Tool = {
     
     const prices: string[] = [];
     for (const pattern of pricePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        prices.push(...matches);
-      }
+      prices.push(...extractMatches(snapshotText, pattern, 50));
     }
     
     const uniquePrices = [...new Set(prices)];
@@ -239,8 +237,8 @@ export const monitorPrice: Tool = {
         .join("\n");
       
       // Extract price
-      const priceMatch = snapshotText.match(/\$[\d,]+\.?\d*/);
-      if (priceMatch) {
+      const priceMatch = extractMatches(snapshotText, /\$[\d,]+\.?\d*/g, 1);
+      if (priceMatch && priceMatch.length > 0) {
         const timestamp = new Date().toISOString();
         priceHistory.push(`[${timestamp}] ${priceMatch[0]}`);
       }
@@ -372,10 +370,7 @@ export const getMarketData: Tool = {
       const matches: string[] = [];
       
       for (const pattern of pointPatterns) {
-        const found = snapshotText.match(pattern);
-        if (found) {
-          matches.push(...found);
-        }
+        matches.push(...extractMatches(snapshotText, pattern, 50));
       }
       
       if (matches.length > 0) {
