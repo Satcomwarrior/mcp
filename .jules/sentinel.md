@@ -7,3 +7,8 @@
 **Prevention:**
 1.  **Strict Input Validation:** Added `validatePort` to strictly check for integers and valid port range (0-65535).
 2.  **Use Safer APIs:** Where possible, use `execFile` or `spawn` which treat arguments as data, not code. In this case, validation was the chosen fix as `execSync` with shell features (pipes, `findstr`) was required for the specific logic.
+
+## 2025-03-02 - SSRF and LFI Prevention in Browser Navigation
+**Vulnerability:** The `navigate` tool accepted arbitrary URLs. URL string validation via types or schemas (like Zod) only verifies structure, not protocol safety. This allows SSRF (Server-Side Request Forgery) and LFI (Local File Inclusion) attacks via unsafe protocols like `file://` or `javascript://`.
+**Learning:** URL string validation via types or schemas (like Zod's `url()`) only verifies structure, not protocol safety. To prevent SSRF/LFI vulnerabilities, untrusted URLs must be parsed using the `URL` constructor and the `protocol` property explicitly validated against an allowlist.
+**Prevention:** Always parse user-provided URLs using `new URL()` and explicitly check `url.protocol` against an allowlist like `['http:', 'https:']` before fetching or navigating to them.
