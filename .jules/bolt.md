@@ -1,3 +1,3 @@
-## 2026-02-23 - Regex Compilation Optimization
-**Learning:** Extracting regex literals to module-level constants in `src/utils/eth.ts` significantly improved performance for simple validation checks (`isValidEthAddress` improved by ~50%, 39ms -> 20ms for 100k iterations). However, complex matching regexes (`parseTradingPair`) showed negligible performance improvement, likely due to execution cost dominating compilation cost or internal caching mechanisms.
-**Action:** Prioritize extracting simple validation regexes used in high-frequency paths (like `test()` calls). Always benchmark to confirm impact, as complexity of the regex and usage pattern (test vs match) affects the optimization gain.
+## 2024-03-04 - Optimize trading.ts portfolio and market data extraction
+**Learning:** When extracting data from large text blocks using regex, combining multiple sequential RegExp scans into a single alternated `(?:...|...)` global regex scan significantly reduces CPU overhead by eliminating redundant string traversals. Additionally, hoisting array literals out of function loops provides measurable speedup.
+**Action:** Use pre-compiled, alternated regular expressions and module-level constants instead of sequential array `.some()` loops or multiple sequential `.match()` calls when processing large document snapshots.
