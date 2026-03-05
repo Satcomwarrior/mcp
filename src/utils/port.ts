@@ -1,4 +1,4 @@
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import net from "node:net";
 
 /**
@@ -29,12 +29,40 @@ export async function isPortInUse(port: number): Promise<boolean> {
 export function killProcessOnPort(port: number) {
   validatePort(port);
   try {
+    // SECURITY: Using execFileSync with an array of arguments to avoid shell injection
     if (process.platform === "win32") {
-      execSync(
-        `FOR /F "tokens=5" %a in ('netstat -ano ^| findstr :${port}') do taskkill /F /PID %a`,
-      );
+      const output = execFileSync("netstat", ["-ano"]).toString();
+      const lines = output.split('\n');
+      for (const line of lines) {
+        if (line.includes(`:${port}`)) {
+          const parts = line.trim().split(/\s+/);
+          const pid = parts[parts.length - 1];
+          if (pid && pid !== "0") {
+            try {
+              execFileSync("taskkill", ["/F", "/PID", pid]);
+            } catch (e) {
+              // Ignore taskkill errors for individual processes
+            }
+          }
+        }
+      }
     } else {
-      execSync(`lsof -ti:${port} | xargs kill -9`);
+      let output = "";
+      try {
+        output = execFileSync("lsof", ["-t", `-i:${port}`]).toString();
+      } catch (e) {
+        // lsof returns non-zero exit code if no processes are found
+        return;
+      }
+
+      const pids = output.trim().split('\n').filter(Boolean);
+      for (const pid of pids) {
+        try {
+          execFileSync("kill", ["-9", pid]);
+        } catch (e) {
+          // Ignore kill errors for individual processes
+        }
+      }
     }
   } catch (error) {
     console.error(`Failed to kill process on port ${port}:`, error);
