@@ -8,6 +8,7 @@ import {
 
 import { Context } from "@/context";
 import type { Resource } from "@/resources/resource";
+import { debugLog } from "@/utils/log";
 import type { Tool } from "@/tools/tool";
 import { createWebSocketServer } from "@/ws";
 
@@ -63,8 +64,14 @@ export async function createServerWithTools(options: Options): Promise<Server> {
       const result = await tool.handle(context, request.params.arguments);
       return result;
     } catch (error) {
+      debugLog(`Error executing tool "${tool.schema.name}":`, error);
       return {
-        content: [{ type: "text", text: String(error) }],
+        content: [
+          {
+            type: "text",
+            text: "An internal error occurred while executing the tool.",
+          },
+        ],
         isError: true,
       };
     }
@@ -78,8 +85,13 @@ export async function createServerWithTools(options: Options): Promise<Server> {
       return { contents: [] };
     }
 
-    const contents = await resource.read(context, request.params.uri);
-    return { contents };
+    try {
+      const contents = await resource.read(context, request.params.uri);
+      return { contents };
+    } catch (error) {
+      debugLog(`Error reading resource "${resource.schema.uri}":`, error);
+      throw new Error("An internal error occurred while reading the resource.");
+    }
   });
 
   server.close = async () => {
