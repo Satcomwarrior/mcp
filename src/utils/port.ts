@@ -1,4 +1,4 @@
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import net from "node:net";
 
 /**
@@ -30,11 +30,45 @@ export function killProcessOnPort(port: number) {
   validatePort(port);
   try {
     if (process.platform === "win32") {
-      execSync(
-        `FOR /F "tokens=5" %a in ('netstat -ano ^| findstr :${port}') do taskkill /F /PID %a`,
-      );
+      let output = "";
+      try {
+        output = execFileSync("netstat", ["-ano"], { encoding: "utf8" });
+      } catch (e: any) {
+        output = e.stdout || "";
+      }
+      const lines = output.split("\n");
+      const pidsToKill = new Set<string>();
+      for (const line of lines) {
+        if (line.includes(`:${port}`)) {
+          const parts = line.trim().split(/\s+/);
+          const pid = parts[parts.length - 1];
+          if (pid && pid !== "0" && !isNaN(Number(pid))) {
+            pidsToKill.add(pid);
+          }
+        }
+      }
+      for (const pid of pidsToKill) {
+        try {
+          execFileSync("taskkill", ["/F", "/PID", pid]);
+        } catch (e) {
+          // Ignore individual process kill failures
+        }
+      }
     } else {
-      execSync(`lsof -ti:${port} | xargs kill -9`);
+      let output = "";
+      try {
+        output = execFileSync("lsof", ["-ti", `:${port}`], { encoding: "utf8" });
+      } catch (e: any) {
+        output = e.stdout || "";
+      }
+      const pids = output.split("\n").map((pid: string) => pid.trim()).filter(Boolean);
+      for (const pid of pids) {
+        try {
+          execFileSync("kill", ["-9", pid]);
+        } catch (e) {
+          // Ignore individual process kill failures
+        }
+      }
     }
   } catch (error) {
     console.error(`Failed to kill process on port ${port}:`, error);
