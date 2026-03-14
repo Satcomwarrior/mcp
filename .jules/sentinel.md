@@ -7,3 +7,13 @@
 **Prevention:**
 1.  **Strict Input Validation:** Added `validatePort` to strictly check for integers and valid port range (0-65535).
 2.  **Use Safer APIs:** Where possible, use `execFile` or `spawn` which treat arguments as data, not code. In this case, validation was the chosen fix as `execSync` with shell features (pipes, `findstr`) was required for the specific logic.
+
+## 2026-03-13 - [Critical] WebSocket Server Exposure
+
+**Vulnerability:** A Severe security risk was identified in `src/ws.ts` where `WebSocketServer` was instantiated without specifying a `host`. By default, Node.js networking servers (`net`, `http`, `ws`) bind to all available interfaces (`0.0.0.0` or `::`). For an MCP server designed for local browser communication, this unintentionally exposed the WebSocket port to external networks, allowing potential attackers on the same network to connect and execute browser automation commands.
+
+**Learning:** When using Node.js network servers like `ws`'s `WebSocketServer` for local tools, explicitly bind to `host: '127.0.0.1'` to prevent the default behavior of binding to all interfaces (`0.0.0.0`), which unintentionally exposes the server to external networks.
+
+**Prevention:**
+1.  **Explicit Binding:** Always specify `host: '127.0.0.1'` (or `localhost`) when creating servers meant solely for local communication.
+2.  **Review Defaults:** Be aware of the default behavior of networking libraries, which often prioritize connectivity over isolation.
