@@ -20,6 +20,33 @@ export const navigate: ToolFactory = (snapshot) => ({
   },
   handle: async (context, params) => {
     const { url } = NavigateTool.shape.arguments.parse(params);
+
+    // Security: Validate URL protocol to prevent SSRF/LFI
+    try {
+      const parsedUrl = new URL(url);
+      if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: `Security Error: Invalid URL protocol '${parsedUrl.protocol}'. Only http: and https: are allowed.`,
+            },
+          ],
+        };
+      }
+    } catch (error) {
+      return {
+        isError: true,
+        content: [
+          {
+            type: "text",
+            text: "Security Error: Invalid URL format.",
+          },
+        ],
+      };
+    }
+
     await context.sendSocketMessage("browser_navigate", { url });
     if (snapshot) {
       return captureAriaSnapshot(context);

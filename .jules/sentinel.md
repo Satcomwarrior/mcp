@@ -7,3 +7,11 @@
 **Prevention:**
 1.  **Strict Input Validation:** Added `validatePort` to strictly check for integers and valid port range (0-65535).
 2.  **Use Safer APIs:** Where possible, use `execFile` or `spawn` which treat arguments as data, not code. In this case, validation was the chosen fix as `execSync` with shell features (pipes, `findstr`) was required for the specific logic.
+
+## 2026-02-23 - [Critical] SSRF and LFI Vulnerability in URL Navigation Tool
+
+**Vulnerability:** A Server-Side Request Forgery (SSRF) and Local File Inclusion (LFI) vulnerability was found in `src/tools/common.ts` within the `navigate` tool. The `url` argument provided by a user was directly passed to the `browser_navigate` handler without validating the protocol. An attacker could provide a `file://` URL or internal service URL (e.g. `http://localhost:8080` or `http://169.254.169.254`) allowing access to internal files and services.
+
+**Learning:** URL string validation via types or schemas only verifies structural correctness. It does not ensure the safety of the protocol itself.
+
+**Prevention:** Always parse untrusted URLs using the `URL` constructor and validate the `protocol` property against a strict allowlist (e.g., `['http:', 'https:']`) before executing navigation or making requests.
