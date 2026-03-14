@@ -89,6 +89,11 @@ export function validatePrice(price: string | number): {
   return { valid: true, value: num };
 }
 
+// Cache for Intl.NumberFormat instances to prevent expensive recompilation
+// Using null to cache invalid currencies that would throw an error during instantiation
+const formatters = new Map<string, Intl.NumberFormat | null>();
+const MAX_CACHE_SIZE = 1000;
+
 /**
  * Format price for display
  */
@@ -98,13 +103,42 @@ export function formatPrice(price: number, currency = "USD"): string {
   }
   
   const maxDecimals = (currency === "USDT" || currency === "USD" || currency === "EUR" || currency === "GBP") ? 2 : 8;
+  const targetCurrency = currency === "USDT" ? "USD" : currency;
+
+  // Create a unique cache key based on currency and maximum decimals
+  const cacheKey = `${targetCurrency}-${maxDecimals}`;
+  let formatter = formatters.get(cacheKey);
+
+  if (formatter === undefined) {
+    // Prevent unbounded memory growth if flooded with random currencies
+    if (formatters.size >= MAX_CACHE_SIZE) {
+      const firstKey = formatters.keys().next().value;
+      if (firstKey !== undefined) {
+        formatters.delete(firstKey);
+      }
+    }
+
+    try {
+      formatter = new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: targetCurrency,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: maxDecimals,
+      });
+      formatters.set(cacheKey, formatter);
+    } catch (e) {
+      // If currency is invalid, Intl.NumberFormat will throw
+      formatters.set(cacheKey, null);
+      formatter = null;
+    }
+  }
+
+  if (formatter) {
+    return formatter.format(price);
+  }
   
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: currency === "USDT" ? "USD" : currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: maxDecimals,
-  }).format(price);
+  // Fallback for unsupported currencies
+  return `${price.toFixed(maxDecimals)} ${currency}`;
 }
 
 /**
