@@ -8,22 +8,22 @@
  */
 export function parsePrice(priceString: string): number | null {
   if (!priceString) return null;
-  
+
   // Remove common currency symbols and text
   let cleaned = priceString
     .replace(/[$€£¥₿]/g, "")
     .replace(/USD|EUR|GBP|JPY|BTC|ETH|USDT/gi, "")
     .trim();
-  
+
   // Handle both comma and dot as decimal separator
   // If both are present, the last one is the decimal separator
   const hasComma = cleaned.includes(",");
   const hasDot = cleaned.includes(".");
-  
+
   if (hasComma && hasDot) {
     const lastComma = cleaned.lastIndexOf(",");
     const lastDot = cleaned.lastIndexOf(".");
-    
+
     if (lastComma > lastDot) {
       // European format: 1.234,56
       cleaned = cleaned.replace(/\./g, "").replace(",", ".");
@@ -42,7 +42,7 @@ export function parsePrice(priceString: string): number | null {
       cleaned = cleaned.replace(/,/g, "");
     }
   }
-  
+
   const parsed = parseFloat(cleaned);
   return isNaN(parsed) ? null : parsed;
 }
@@ -56,15 +56,15 @@ export function validateAmount(amount: string | number): {
   error?: string;
 } {
   const num = typeof amount === "string" ? parsePrice(amount) : amount;
-  
+
   if (num === null || isNaN(num)) {
     return { valid: false, error: "Invalid amount format" };
   }
-  
+
   if (num <= 0) {
     return { valid: false, error: "Amount must be positive" };
   }
-  
+
   return { valid: true, value: num };
 }
 
@@ -77,17 +77,21 @@ export function validatePrice(price: string | number): {
   error?: string;
 } {
   const num = typeof price === "string" ? parsePrice(price) : price;
-  
+
   if (num === null || isNaN(num)) {
     return { valid: false, error: "Invalid price format" };
   }
-  
+
   if (num <= 0) {
     return { valid: false, error: "Price must be positive" };
   }
-  
+
   return { valid: true, value: num };
 }
+
+// Cache for Intl.NumberFormat instances to prevent expensive instantiations
+const numberFormatCache = new Map<string, Intl.NumberFormat | null>();
+const MAX_CACHE_SIZE = 1000;
 
 /**
  * Format price for display
@@ -96,15 +100,46 @@ export function formatPrice(price: number, currency = "USD"): string {
   if (currency === "BTC" || currency === "ETH") {
     return `${price.toFixed(8)} ${currency}`;
   }
-  
-  const maxDecimals = (currency === "USDT" || currency === "USD" || currency === "EUR" || currency === "GBP") ? 2 : 8;
-  
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: currency === "USDT" ? "USD" : currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: maxDecimals,
-  }).format(price);
+
+  const maxDecimals =
+    currency === "USDT" ||
+    currency === "USD" ||
+    currency === "EUR" ||
+    currency === "GBP"
+      ? 2
+      : 8;
+  const mappedCurrency = currency === "USDT" ? "USD" : currency;
+  const cacheKey = `${mappedCurrency}-${maxDecimals}`;
+
+  let formatter = numberFormatCache.get(cacheKey);
+
+  if (formatter === undefined) {
+    if (numberFormatCache.size >= MAX_CACHE_SIZE) {
+      // Prevent unbounded memory growth by deleting the oldest entry
+      const firstKey = numberFormatCache.keys().next().value;
+      if (firstKey !== undefined) numberFormatCache.delete(firstKey);
+    }
+    try {
+      formatter = new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: mappedCurrency,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: maxDecimals,
+      });
+      numberFormatCache.set(cacheKey, formatter);
+    } catch (e) {
+      // Cache null to avoid repeatedly throwing errors for unsupported currencies
+      numberFormatCache.set(cacheKey, null);
+      formatter = null;
+    }
+  }
+
+  // Fallback if Intl.NumberFormat throws an error for unsupported currencies
+  if (formatter === null) {
+    return `${price.toFixed(maxDecimals)} ${mappedCurrency}`;
+  }
+
+  return formatter.format(price);
 }
 
 /**
@@ -117,7 +152,7 @@ export function calculateChange(
   if (oldPrice === 0) {
     throw new Error("Cannot calculate percentage change from a zero price");
   }
-  
+
   const absolute = newPrice - oldPrice;
   const percentage = (absolute / oldPrice) * 100;
   return { absolute, percentage };
@@ -143,7 +178,7 @@ export function isSignificantChange(
   if (oldPrice === 0) {
     return false; // Can't determine significance from zero price
   }
-  
+
   const { percentage } = calculateChange(oldPrice, newPrice);
   return Math.abs(percentage) >= threshold;
 }
@@ -162,23 +197,23 @@ export function parsePercentage(percentString: string): number | null {
  */
 export function parseVolume(volumeString: string): number | null {
   if (!volumeString) return null;
-  
+
   const cleaned = volumeString.replace(/[^0-9.KMB]/gi, "").toUpperCase();
   const multipliers: Record<string, number> = {
     K: 1000,
     M: 1000000,
     B: 1000000000,
   };
-  
+
   let num = parseFloat(cleaned);
   if (isNaN(num)) return null;
-  
+
   for (const [suffix, multiplier] of Object.entries(multipliers)) {
     if (cleaned.endsWith(suffix)) {
       num *= multiplier;
       break;
     }
   }
-  
+
   return num;
 }
