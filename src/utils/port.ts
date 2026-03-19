@@ -1,4 +1,4 @@
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import net from "node:net";
 
 /**
@@ -22,7 +22,8 @@ export async function isPortInUse(port: number): Promise<boolean> {
     server.once("listening", () => {
       server.close(() => resolve(false)); // Port is free
     });
-    server.listen(port);
+    // Explicitly bind to localhost to avoid external network exposure
+    server.listen(port, "127.0.0.1");
   });
 }
 
@@ -30,11 +31,36 @@ export function killProcessOnPort(port: number) {
   validatePort(port);
   try {
     if (process.platform === "win32") {
-      execSync(
-        `FOR /F "tokens=5" %a in ('netstat -ano ^| findstr :${port}') do taskkill /F /PID %a`,
-      );
+      const output = execFileSync("netstat", ["-ano"], { encoding: "utf8" });
+      const lines = output.split('\n');
+      for (const line of lines) {
+        const parts = line.trim().split(/\s+/);
+        if (parts.length >= 4 && parts[1]?.endsWith(`:${port}`)) {
+          const pid = parts[parts.length - 1];
+          if (pid && pid !== '0') {
+            try {
+              execFileSync("taskkill", ["/F", "/PID", pid]);
+            } catch (e) {
+              // Ignore individual kill errors
+            }
+          }
+        }
+      }
     } else {
-      execSync(`lsof -ti:${port} | xargs kill -9`);
+      let output = "";
+      try {
+        output = execFileSync("lsof", ["-t", "-i", `:${port}`], { encoding: "utf8" });
+      } catch (err: any) {
+        if (err.status !== 1) throw err;
+      }
+      const pids = output.trim().split('\n').filter(Boolean);
+      for (const pid of pids) {
+        try {
+          execFileSync("kill", ["-9", pid]);
+        } catch (e) {
+          // Ignore individual kill errors
+        }
+      }
     }
   } catch (error) {
     console.error(`Failed to kill process on port ${port}:`, error);
