@@ -89,6 +89,10 @@ export function validatePrice(price: string | number): {
   return { valid: true, value: num };
 }
 
+// Cache for Intl.NumberFormat instances to avoid expensive instantiation in loops
+const numberFormatCache = new Map<string, Intl.NumberFormat>();
+const MAX_CACHE_SIZE = 100;
+
 /**
  * Format price for display
  */
@@ -98,13 +102,28 @@ export function formatPrice(price: number, currency = "USD"): string {
   }
   
   const maxDecimals = (currency === "USDT" || currency === "USD" || currency === "EUR" || currency === "GBP") ? 2 : 8;
+  const targetCurrency = currency === "USDT" ? "USD" : currency;
+  const cacheKey = `${targetCurrency}-${maxDecimals}`;
+
+  let formatter = numberFormatCache.get(cacheKey);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: targetCurrency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: maxDecimals,
+    });
+
+    // Prevent unbounded memory growth
+    if (numberFormatCache.size >= MAX_CACHE_SIZE) {
+      const firstKey = numberFormatCache.keys().next().value;
+      if (firstKey) numberFormatCache.delete(firstKey);
+    }
+
+    numberFormatCache.set(cacheKey, formatter);
+  }
   
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: currency === "USDT" ? "USD" : currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: maxDecimals,
-  }).format(price);
+  return formatter.format(price);
 }
 
 /**
