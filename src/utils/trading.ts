@@ -89,6 +89,11 @@ export function validatePrice(price: string | number): {
   return { valid: true, value: num };
 }
 
+// Cache for Intl.NumberFormat instances to prevent expensive instantiations
+// Limit cache size to prevent unbounded memory growth from invalid/random currencies
+const formatterCache = new Map<string, Intl.NumberFormat>();
+const MAX_CACHE_SIZE = 100;
+
 /**
  * Format price for display
  */
@@ -98,13 +103,34 @@ export function formatPrice(price: number, currency = "USD"): string {
   }
   
   const maxDecimals = (currency === "USDT" || currency === "USD" || currency === "EUR" || currency === "GBP") ? 2 : 8;
+  const targetCurrency = currency === "USDT" ? "USD" : currency;
+  const cacheKey = `${targetCurrency}-${maxDecimals}`;
+
+  let formatter = formatterCache.get(cacheKey);
+
+  if (!formatter) {
+    // If currency is invalid, this will intentionally throw a RangeError,
+    // preserving the existing error handling behavior of the function.
+    formatter = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: targetCurrency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: maxDecimals,
+    });
+
+    // Prevent memory leaks by enforcing a max cache size
+    if (formatterCache.size >= MAX_CACHE_SIZE) {
+      // Map iteration returns in insertion order, so this deletes the oldest entry
+      const oldestKey = formatterCache.keys().next().value;
+      if (oldestKey) {
+        formatterCache.delete(oldestKey);
+      }
+    }
+
+    formatterCache.set(cacheKey, formatter);
+  }
   
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: currency === "USDT" ? "USD" : currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: maxDecimals,
-  }).format(price);
+  return formatter.format(price);
 }
 
 /**
