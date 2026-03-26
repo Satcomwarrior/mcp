@@ -22,7 +22,9 @@ export async function isPortInUse(port: number): Promise<boolean> {
     server.once("listening", () => {
       server.close(() => resolve(false)); // Port is free
     });
-    server.listen(port);
+    // SEC-FIX: Explicitly check port availability on localhost (127.0.0.1)
+    // to avoid default binding to all interfaces (0.0.0.0 / ::) during the check.
+    server.listen(port, "127.0.0.1");
   });
 }
 

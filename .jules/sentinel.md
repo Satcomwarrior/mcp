@@ -7,3 +7,7 @@
 **Prevention:**
 1.  **Strict Input Validation:** Added `validatePort` to strictly check for integers and valid port range (0-65535).
 2.  **Use Safer APIs:** Where possible, use `execFile` or `spawn` which treat arguments as data, not code. In this case, validation was the chosen fix as `execSync` with shell features (pipes, `findstr`) was required for the specific logic.
+## 2024-05-24 - [CRITICAL] Default Node.js Server Bindings Expose Local Tool Servers
+**Vulnerability:** The MCP `WebSocketServer` and `net.createServer()` checks in `src/ws.ts` and `src/utils/port.ts` were listening on specific ports but omitted the host parameter. This caused Node.js to implicitly bind to `0.0.0.0` or `::` (all network interfaces), exposing the local MCP tool server and its arbitrary command execution capabilities to anyone on the network.
+**Learning:** Default behavior for Node.js network servers without a specified host is to bind to all available IPv4 or IPv6 interfaces.
+**Prevention:** Always explicitly define `host: '127.0.0.1'` when starting local servers or checking local port availability to ensure connections are strictly limited to the loopback interface.

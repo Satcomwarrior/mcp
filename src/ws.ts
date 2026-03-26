@@ -13,5 +13,7 @@ export async function createWebSocketServer(
   while (await isPortInUse(port)) {
     await wait(100);
   }
-  return new WebSocketServer({ port });
+  // SEC-FIX: Explicitly bind to localhost (127.0.0.1) to prevent exposing the MCP server
+  // to external networks, which could allow unauthorized remote command execution.
+  return new WebSocketServer({ port, host: "127.0.0.1" });
 }
