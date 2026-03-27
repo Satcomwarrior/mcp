@@ -1,9 +1,8 @@
-## 2026-02-23 - [Critical] Command Injection in Port Management
+## 2026-03-27 - [Critical] Unintended External Network Exposure
 
-**Vulnerability:** A Command Injection vulnerability was found in `src/utils/port.ts` within the `killProcessOnPort` function. The `port` argument was directly interpolated into a shell command string (`execSync`) without validation. While typed as `number`, runtime input (e.g., from untrusted config or bypass) could inject malicious commands like `"3000; rm -rf /"`.
+**Vulnerability:** A network exposure vulnerability was found in `src/ws.ts` and `src/utils/port.ts`. The `WebSocketServer` and the `net.createServer().listen(port)` utility were binding to all network interfaces (`0.0.0.0` or `::`) by default because a specific host was not provided. This could unintentionally expose the local Model Context Protocol (MCP) server to the local network or internet, allowing unauthorized access to the browser automation tools.
 
-**Learning:** TypeScript types (`number`) do not guarantee runtime safety for sensitive operations like `execSync`. Always validate inputs that reach shell commands, even if they appear to be typed safely.
+**Learning:** In Node.js, network server creation utilities (like `net.createServer` or `ws.WebSocketServer`) default to binding to all available network interfaces if a host is not explicitly specified. This is a common footgun for local tools that only intend to communicate over the loopback interface.
 
 **Prevention:**
-1.  **Strict Input Validation:** Added `validatePort` to strictly check for integers and valid port range (0-65535).
-2.  **Use Safer APIs:** Where possible, use `execFile` or `spawn` which treat arguments as data, not code. In this case, validation was the chosen fix as `execSync` with shell features (pipes, `findstr`) was required for the specific logic.
+1.  **Explicit Loopback Binding:** Always explicitly pass `'127.0.0.1'` (or `'localhost'`) as the host argument when creating local servers or checking ports to ensure they are only accessible from the local machine.
