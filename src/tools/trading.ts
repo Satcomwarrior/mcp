@@ -2,7 +2,7 @@ import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 
 import type { Context } from "@/context";
-import { captureAriaSnapshot } from "@/utils/aria-snapshot";
+import { captureAriaSnapshot, getSnapshotText } from "@/utils/aria-snapshot";
 
 import type { Tool } from "./tool";
 
@@ -28,12 +28,8 @@ const ExecuteTradeTool = z.object({
     "Prepare for trade execution by providing guidance on filling order forms. This tool helps identify the steps needed to execute buy/sell trades with market, limit, or stop orders. Use with browser_click and browser_type tools to actually execute the trade.",
   ),
   arguments: z.object({
-    action: z
-      .enum(["buy", "sell"])
-      .describe("The trade action to perform"),
-    amount: z
-      .string()
-      .describe("The amount or quantity to trade"),
+    action: z.enum(["buy", "sell"]).describe("The trade action to perform"),
+    amount: z.string().describe("The amount or quantity to trade"),
     orderType: z
       .enum(["market", "limit", "stop"])
       .default("market")
@@ -132,16 +128,13 @@ export const getPrice: Tool = {
   },
   handle: async (context: Context, params) => {
     const { selector } = GetPriceTool.shape.arguments.parse(params);
-    
+
     // Get page snapshot to analyze
     const snapshot = await captureAriaSnapshot(context);
-    
+
     // Look for price in the snapshot content
-    const snapshotText = snapshot.content
-      .filter((c) => c.type === "text")
-      .map((c) => (c as any).text)
-      .join("\n");
-    
+    const snapshotText = getSnapshotText(snapshot);
+
     // Common price patterns - ensure at least one digit
     const pricePatterns = [
       /\$\d[\d,]*\.?\d*/g,
@@ -150,7 +143,7 @@ export const getPrice: Tool = {
       /Quote:\s*\d[\d,]*\.?\d*/gi,
       /Last:\s*\d[\d,]*\.?\d*/gi,
     ];
-    
+
     const prices: string[] = [];
     for (const pattern of pricePatterns) {
       const matches = snapshotText.match(pattern);
@@ -158,9 +151,9 @@ export const getPrice: Tool = {
         prices.push(...matches);
       }
     }
-    
+
     const uniquePrices = [...new Set(prices)];
-    
+
     return {
       content: [
         {
@@ -183,11 +176,11 @@ export const executeTrade: Tool = {
   handle: async (context: Context, params) => {
     const validatedParams = ExecuteTradeTool.shape.arguments.parse(params);
     const { action, amount, orderType, price, symbol } = validatedParams;
-    
+
     // This is a placeholder - actual implementation would interact with specific trading platforms
     // For now, we'll capture the state and provide guidance
     const snapshot = await captureAriaSnapshot(context);
-    
+
     const tradeInfo = [
       `Trade execution guidance:`,
       `  Action: ${action.toUpperCase()}`,
@@ -206,7 +199,7 @@ export const executeTrade: Tool = {
     ]
       .filter(Boolean)
       .join("\n");
-    
+
     return {
       content: [
         {
@@ -226,31 +219,29 @@ export const monitorPrice: Tool = {
     inputSchema: zodToJsonSchema(MonitorPriceTool.shape.arguments),
   },
   handle: async (context: Context, params) => {
-    const { interval, duration, selector } = MonitorPriceTool.shape.arguments.parse(params);
-    
+    const { interval, duration, selector } =
+      MonitorPriceTool.shape.arguments.parse(params);
+
     const iterations = Math.min(Math.floor(duration / interval), 60); // Max 60 iterations
     const priceHistory: string[] = [];
-    
+
     for (let i = 0; i < iterations; i++) {
       const snapshot = await captureAriaSnapshot(context);
-      const snapshotText = snapshot.content
-        .filter((c) => c.type === "text")
-        .map((c) => (c as any).text)
-        .join("\n");
-      
+      const snapshotText = getSnapshotText(snapshot);
+
       // Extract price
       const priceMatch = snapshotText.match(/\$[\d,]+\.?\d*/);
       if (priceMatch) {
         const timestamp = new Date().toISOString();
         priceHistory.push(`[${timestamp}] ${priceMatch[0]}`);
       }
-      
+
       // Wait for next interval (except on last iteration)
       if (i < iterations - 1) {
         await context.sendSocketMessage("browser_wait", { time: interval });
       }
     }
-    
+
     return {
       content: [
         {
@@ -270,13 +261,10 @@ export const getPortfolio: Tool = {
   },
   handle: async (context: Context, params) => {
     const { includeDetails } = GetPortfolioTool.shape.arguments.parse(params);
-    
+
     const snapshot = await captureAriaSnapshot(context);
-    const snapshotText = snapshot.content
-      .filter((c) => c.type === "text")
-      .map((c) => (c as any).text)
-      .join("\n");
-    
+    const snapshotText = getSnapshotText(snapshot);
+
     // Look for portfolio-related keywords
     const portfolioKeywords = [
       "balance",
@@ -290,17 +278,21 @@ export const getPortfolio: Tool = {
       "P&L",
       "PnL",
     ];
-    
+
     const portfolioInfo: string[] = [];
     const lines = snapshotText.split("\n");
-    
+
     for (const line of lines) {
       const lowerLine = line.toLowerCase();
-      if (portfolioKeywords.some((keyword) => lowerLine.includes(keyword.toLowerCase()))) {
+      if (
+        portfolioKeywords.some((keyword) =>
+          lowerLine.includes(keyword.toLowerCase()),
+        )
+      ) {
         portfolioInfo.push(line.trim());
       }
     }
-    
+
     return {
       content: [
         {
@@ -321,9 +313,9 @@ export const setPriceAlert: Tool = {
   handle: async (context: Context, params) => {
     const validatedParams = SetPriceAlertTool.shape.arguments.parse(params);
     const { symbol, targetPrice, condition } = validatedParams;
-    
+
     const snapshot = await captureAriaSnapshot(context);
-    
+
     return {
       content: [
         {
@@ -344,49 +336,52 @@ export const getMarketData: Tool = {
   },
   handle: async (context: Context, params) => {
     const { dataPoints } = GetMarketDataTool.shape.arguments.parse(params);
-    
+
     const snapshot = await captureAriaSnapshot(context);
-    const snapshotText = snapshot.content
-      .filter((c) => c.type === "text")
-      .map((c) => (c as any).text)
-      .join("\n");
-    
+    const snapshotText = getSnapshotText(snapshot);
+
     const marketData: Record<string, string[]> = {};
-    
+
     const patterns: Record<string, RegExp[]> = {
       price: [/\$[\d,]+\.?\d*/g, /Price:\s*[\d,]+\.?\d*/gi],
       volume: [/Volume:\s*[\d,]+\.?\d*[KMB]?/gi, /Vol:\s*[\d,]+\.?\d*[KMB]?/gi],
-      market_cap: [/Market Cap:\s*[\d,]+\.?\d*[KMB]?/gi, /Mkt Cap:\s*[\d,]+\.?\d*[KMB]?/gi],
-      change_24h: [/24h:\s*[+-]?[\d,]+\.?\d*%?/gi, /Change:\s*[+-]?[\d,]+\.?\d*%?/gi],
+      market_cap: [
+        /Market Cap:\s*[\d,]+\.?\d*[KMB]?/gi,
+        /Mkt Cap:\s*[\d,]+\.?\d*[KMB]?/gi,
+      ],
+      change_24h: [
+        /24h:\s*[+-]?[\d,]+\.?\d*%?/gi,
+        /Change:\s*[+-]?[\d,]+\.?\d*%?/gi,
+      ],
       high_24h: [/High:\s*[\d,]+\.?\d*/gi, /24h High:\s*[\d,]+\.?\d*/gi],
       low_24h: [/Low:\s*[\d,]+\.?\d*/gi, /24h Low:\s*[\d,]+\.?\d*/gi],
     };
-    
+
     const requestedPoints = dataPoints.includes("all")
       ? Object.keys(patterns)
       : dataPoints;
-    
+
     for (const point of requestedPoints) {
       if (point === "all") continue;
       const pointPatterns = patterns[point as keyof typeof patterns] || [];
       const matches: string[] = [];
-      
+
       for (const pattern of pointPatterns) {
         const found = snapshotText.match(pattern);
         if (found) {
           matches.push(...found);
         }
       }
-      
+
       if (matches.length > 0) {
         marketData[point] = [...new Set(matches)];
       }
     }
-    
+
     const result = Object.entries(marketData)
       .map(([key, values]) => `${key}:\n  ${values.join("\n  ")}`)
       .join("\n\n");
-    
+
     return {
       content: [
         {

@@ -1,5 +1,5 @@
 import type { Context } from "@/context";
-import { captureAriaSnapshot } from "@/utils/aria-snapshot";
+import { captureAriaSnapshot, getSnapshotText } from "@/utils/aria-snapshot";
 
 import type { Resource } from "./resource";
 
@@ -17,18 +17,15 @@ export const watchlist: Resource = {
   read: async (context: Context) => {
     // Get current page snapshot to extract watchlist data
     const snapshot = await captureAriaSnapshot(context);
-    const snapshotText = snapshot.content
-      .filter((c) => c.type === "text")
-      .map((c) => (c as any).text)
-      .join("\n");
+    const snapshotText = getSnapshotText(snapshot);
 
     // Extract potential watchlist items
     const symbolPattern = /\b[A-Z]{2,5}\b/g;
     const pricePattern = /\$[\d,]+\.?\d*/g;
-    
+
     const symbols = snapshotText.match(symbolPattern) || [];
     const prices = snapshotText.match(pricePattern) || [];
-    
+
     const watchlistData = {
       timestamp: new Date().toISOString(),
       symbols: [...new Set(symbols)].slice(0, 20), // Limit to 20 symbols
@@ -59,10 +56,7 @@ export const positions: Resource = {
   },
   read: async (context: Context) => {
     const snapshot = await captureAriaSnapshot(context);
-    const snapshotText = snapshot.content
-      .filter((c) => c.type === "text")
-      .map((c) => (c as any).text)
-      .join("\n");
+    const snapshotText = getSnapshotText(snapshot);
 
     // Look for position-related data
     const positionKeywords = [
@@ -111,15 +105,13 @@ export const marketSummary: Resource = {
   schema: {
     uri: "trading://market-summary",
     name: "Market Summary",
-    description: "Current market overview including indices and major market data",
+    description:
+      "Current market overview including indices and major market data",
     mimeType: "application/json",
   },
   read: async (context: Context) => {
     const snapshot = await captureAriaSnapshot(context);
-    const snapshotText = snapshot.content
-      .filter((c) => c.type === "text")
-      .map((c) => (c as any).text)
-      .join("\n");
+    const snapshotText = getSnapshotText(snapshot);
 
     // Extract market indices and major data points
     const marketPatterns = {
@@ -130,7 +122,7 @@ export const marketSummary: Resource = {
     };
 
     const marketData: Record<string, string[]> = {};
-    
+
     for (const [key, pattern] of Object.entries(marketPatterns)) {
       const matches = snapshotText.match(pattern);
       if (matches) {
