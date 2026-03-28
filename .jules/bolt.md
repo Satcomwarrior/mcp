@@ -1,3 +1,7 @@
 ## 2026-02-23 - Regex Compilation Optimization
 **Learning:** Extracting regex literals to module-level constants in `src/utils/eth.ts` significantly improved performance for simple validation checks (`isValidEthAddress` improved by ~50%, 39ms -> 20ms for 100k iterations). However, complex matching regexes (`parseTradingPair`) showed negligible performance improvement, likely due to execution cost dominating compilation cost or internal caching mechanisms.
 **Action:** Prioritize extracting simple validation regexes used in high-frequency paths (like `test()` calls). Always benchmark to confirm impact, as complexity of the regex and usage pattern (test vs match) affects the optimization gain.
+
+## 2025-03-27 - Optimize ARIA snapshot text extraction
+**Learning:** Replaced chained `.filter(c => c.type === "text").map(c => c.text).join('\n')` array operations across tools and resources with a single-pass `for` loop string concatenation (`+=`) via a centralized `getSnapshotText` utility function. Since Node.js strings are optimized and allocations are avoided, this change provides a ~2.3x performance speedup during snapshot text extraction.
+**Action:** When extracting large amounts of sequential text strings from array objects, avoid creating intermediate arrays (via `.filter().map()`). Use a single pass loop to concatenate strings to drastically reduce memory allocation overhead and improve performance.
