@@ -22,7 +22,7 @@ export async function isPortInUse(port: number): Promise<boolean> {
     server.once("listening", () => {
       server.close(() => resolve(false)); // Port is free
     });
-    server.listen(port);
+    server.listen(port, "127.0.0.1"); // Only check localhost binding
   });
 }
 
