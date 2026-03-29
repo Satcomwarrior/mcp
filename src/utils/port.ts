@@ -22,7 +22,7 @@ export async function isPortInUse(port: number): Promise<boolean> {
     server.once("listening", () => {
       server.close(() => resolve(false)); // Port is free
     });
-    server.listen(port);
+    server.listen(port, "127.0.0.1");
   });
 }
 
@@ -34,7 +34,17 @@ export function killProcessOnPort(port: number) {
         `FOR /F "tokens=5" %a in ('netstat -ano ^| findstr :${port}') do taskkill /F /PID %a`,
       );
     } else {
-      execSync(`lsof -ti:${port} | xargs kill -9`);
+      try {
+        const pids = execSync(`lsof -t -i:${port}`, { encoding: "utf8" }).trim();
+        if (pids) {
+          execSync(`kill -9 ${pids.replace(/\n/g, " ")}`);
+        }
+      } catch (e: any) {
+        // lsof returns exit code 1 if no process is found on the port
+        if (e.status !== 1) {
+          throw e;
+        }
+      }
     }
   } catch (error) {
     console.error(`Failed to kill process on port ${port}:`, error);
