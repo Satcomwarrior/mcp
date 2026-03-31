@@ -1,5 +1,5 @@
 import type { Context } from "@/context";
-import { captureAriaSnapshot } from "@/utils/aria-snapshot";
+import { captureAriaSnapshot, getSnapshotText } from "@/utils/aria-snapshot";
 
 import type { Resource } from "./resource";
 
@@ -17,10 +17,7 @@ export const watchlist: Resource = {
   read: async (context: Context) => {
     // Get current page snapshot to extract watchlist data
     const snapshot = await captureAriaSnapshot(context);
-    const snapshotText = snapshot.content
-      .filter((c) => c.type === "text")
-      .map((c) => (c as any).text)
-      .join("\n");
+    const snapshotText = getSnapshotText(snapshot.content);
 
     // Extract potential watchlist items
     const symbolPattern = /\b[A-Z]{2,5}\b/g;
@@ -59,10 +56,7 @@ export const positions: Resource = {
   },
   read: async (context: Context) => {
     const snapshot = await captureAriaSnapshot(context);
-    const snapshotText = snapshot.content
-      .filter((c) => c.type === "text")
-      .map((c) => (c as any).text)
-      .join("\n");
+    const snapshotText = getSnapshotText(snapshot.content);
 
     // Look for position-related data
     const positionKeywords = [
@@ -116,10 +110,7 @@ export const marketSummary: Resource = {
   },
   read: async (context: Context) => {
     const snapshot = await captureAriaSnapshot(context);
-    const snapshotText = snapshot.content
-      .filter((c) => c.type === "text")
-      .map((c) => (c as any).text)
-      .join("\n");
+    const snapshotText = getSnapshotText(snapshot.content);
 
     // Extract market indices and major data points
     const marketPatterns = {
