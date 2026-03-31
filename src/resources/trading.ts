@@ -50,6 +50,12 @@ export const watchlist: Resource = {
  * Trading positions resource
  * Provides access to current open positions and portfolio information
  */
+// Pre-compiled regex for position keywords to avoid repeated array.some and string.toLowerCase calls
+const POSITION_KEYWORDS_REGEX = new RegExp(
+  "position|holdings|quantity|qty|shares|coins|P&L|profit|loss",
+  "i"
+);
+
 export const positions: Resource = {
   schema: {
     uri: "trading://positions",
@@ -64,25 +70,11 @@ export const positions: Resource = {
       .map((c) => (c as any).text)
       .join("\n");
 
-    // Look for position-related data
-    const positionKeywords = [
-      "position",
-      "holdings",
-      "quantity",
-      "qty",
-      "shares",
-      "coins",
-      "P&L",
-      "profit",
-      "loss",
-    ];
-
     const positionLines: string[] = [];
     const lines = snapshotText.split("\n");
 
     for (const line of lines) {
-      const lowerLine = line.toLowerCase();
-      if (positionKeywords.some((keyword) => lowerLine.includes(keyword))) {
+      if (POSITION_KEYWORDS_REGEX.test(line)) {
         positionLines.push(line.trim());
       }
     }
