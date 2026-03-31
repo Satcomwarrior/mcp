@@ -262,6 +262,12 @@ export const monitorPrice: Tool = {
   },
 };
 
+// Pre-compiled regex for portfolio keywords to avoid repeated array.some and string.toLowerCase calls
+const PORTFOLIO_KEYWORDS_REGEX = new RegExp(
+  "balance|equity|position|holdings|portfolio|total|profit|loss|P&L|PnL",
+  "i"
+);
+
 export const getPortfolio: Tool = {
   schema: {
     name: GetPortfolioTool.shape.name.value,
@@ -277,26 +283,11 @@ export const getPortfolio: Tool = {
       .map((c) => (c as any).text)
       .join("\n");
     
-    // Look for portfolio-related keywords
-    const portfolioKeywords = [
-      "balance",
-      "equity",
-      "position",
-      "holdings",
-      "portfolio",
-      "total",
-      "profit",
-      "loss",
-      "P&L",
-      "PnL",
-    ];
-    
     const portfolioInfo: string[] = [];
     const lines = snapshotText.split("\n");
     
     for (const line of lines) {
-      const lowerLine = line.toLowerCase();
-      if (portfolioKeywords.some((keyword) => lowerLine.includes(keyword.toLowerCase()))) {
+      if (PORTFOLIO_KEYWORDS_REGEX.test(line)) {
         portfolioInfo.push(line.trim());
       }
     }
