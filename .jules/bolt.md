@@ -1,3 +1,6 @@
 ## 2026-02-23 - Regex Compilation Optimization
 **Learning:** Extracting regex literals to module-level constants in `src/utils/eth.ts` significantly improved performance for simple validation checks (`isValidEthAddress` improved by ~50%, 39ms -> 20ms for 100k iterations). However, complex matching regexes (`parseTradingPair`) showed negligible performance improvement, likely due to execution cost dominating compilation cost or internal caching mechanisms.
 **Action:** Prioritize extracting simple validation regexes used in high-frequency paths (like `test()` calls). Always benchmark to confirm impact, as complexity of the regex and usage pattern (test vs match) affects the optimization gain.
+## 2024-05-24 - Array.some inside a loop is slow for string searching
+**Learning:** In a loop iterating over thousands of text lines, creating small arrays and executing \`.toLowerCase()\` repeatedly inside \`.some()\` causes significant memory allocation and execution overhead compared to a pre-compiled, case-insensitive Regular Expression.
+**Action:** Replace `Array.prototype.some` keyword match loops with a top-level, pre-compiled `RegExp.test` when processing large text payloads like DOM snapshots.
