@@ -92,6 +92,34 @@ export function validatePrice(price: string | number): {
 /**
  * Format price for display
  */
+const formatterCache = new Map<string, Intl.NumberFormat>();
+
+function getFormatter(currency: string, maxDecimals: number): Intl.NumberFormat {
+  const cacheKey = `${currency}-${maxDecimals}`;
+  let formatter = formatterCache.get(cacheKey);
+
+  if (!formatter) {
+    try {
+      formatter = new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: currency === "USDT" ? "USD" : currency,
+        minimumFractionDigits: 2,
+        maximumFractionDigits: maxDecimals,
+      });
+      // Set an upper bound on cache size
+      if (formatterCache.size > 100) {
+        const firstKey = formatterCache.keys().next().value;
+        if (firstKey) formatterCache.delete(firstKey);
+      }
+      formatterCache.set(cacheKey, formatter);
+    } catch (e) {
+      throw e;
+    }
+  }
+
+  return formatter;
+}
+
 export function formatPrice(price: number, currency = "USD"): string {
   if (currency === "BTC" || currency === "ETH") {
     return `${price.toFixed(8)} ${currency}`;
@@ -99,12 +127,7 @@ export function formatPrice(price: number, currency = "USD"): string {
   
   const maxDecimals = (currency === "USDT" || currency === "USD" || currency === "EUR" || currency === "GBP") ? 2 : 8;
   
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: currency === "USDT" ? "USD" : currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: maxDecimals,
-  }).format(price);
+  return getFormatter(currency, maxDecimals).format(price);
 }
 
 /**
