@@ -7,3 +7,9 @@
 **Prevention:**
 1.  **Strict Input Validation:** Added `validatePort` to strictly check for integers and valid port range (0-65535).
 2.  **Use Safer APIs:** Where possible, use `execFile` or `spawn` which treat arguments as data, not code. In this case, validation was the chosen fix as `execSync` with shell features (pipes, `findstr`) was required for the specific logic.
+
+## 2026-02-24 - [High] Unintended Network Exposure in Local Servers
+
+**Vulnerability:** Node.js network servers like `WebSocketServer` and `net.createServer` defaulted to binding to all network interfaces, unintentionally exposing local tools to external networks.
+**Learning:** Default port bindings in Node.js do not restrict access to the local machine loopback. Without an explicit host argument, local development servers can be accessed externally.
+**Prevention:** Always explicitly pass `host: "127.0.0.1"` or `"127.0.0.1"` as the host argument when creating network servers or checking port availability.
