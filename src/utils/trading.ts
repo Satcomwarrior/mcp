@@ -89,6 +89,9 @@ export function validatePrice(price: string | number): {
   return { valid: true, value: num };
 }
 
+// Cache for Intl.NumberFormat instances to significantly improve performance
+const numberFormatCache = new Map<string, Intl.NumberFormat>();
+
 /**
  * Format price for display
  */
@@ -98,13 +101,21 @@ export function formatPrice(price: number, currency = "USD"): string {
   }
   
   const maxDecimals = (currency === "USDT" || currency === "USD" || currency === "EUR" || currency === "GBP") ? 2 : 8;
+  const actualCurrency = currency === "USDT" ? "USD" : currency;
+  const cacheKey = `${actualCurrency}-${maxDecimals}`;
+
+  let formatter = numberFormatCache.get(cacheKey);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: actualCurrency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: maxDecimals,
+    });
+    numberFormatCache.set(cacheKey, formatter);
+  }
   
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: currency === "USDT" ? "USD" : currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: maxDecimals,
-  }).format(price);
+  return formatter.format(price);
 }
 
 /**
@@ -157,6 +168,13 @@ export function parsePercentage(percentString: string): number | null {
   return isNaN(parsed) ? null : parsed;
 }
 
+// Module-level constant for volume multipliers
+const VOLUME_MULTIPLIERS: Record<string, number> = {
+  K: 1000,
+  M: 1000000,
+  B: 1000000000,
+};
+
 /**
  * Parse volume strings (handles K, M, B suffixes)
  */
@@ -164,20 +182,13 @@ export function parseVolume(volumeString: string): number | null {
   if (!volumeString) return null;
   
   const cleaned = volumeString.replace(/[^0-9.KMB]/gi, "").toUpperCase();
-  const multipliers: Record<string, number> = {
-    K: 1000,
-    M: 1000000,
-    B: 1000000000,
-  };
-  
   let num = parseFloat(cleaned);
   if (isNaN(num)) return null;
   
-  for (const [suffix, multiplier] of Object.entries(multipliers)) {
-    if (cleaned.endsWith(suffix)) {
-      num *= multiplier;
-      break;
-    }
+  // O(1) constant lookup using the last character avoids array iteration and endsWith checks
+  const lastChar = cleaned[cleaned.length - 1];
+  if (lastChar && VOLUME_MULTIPLIERS[lastChar]) {
+    num *= VOLUME_MULTIPLIERS[lastChar];
   }
   
   return num;
