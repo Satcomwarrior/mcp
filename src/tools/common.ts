@@ -20,6 +20,13 @@ export const navigate: ToolFactory = (snapshot) => ({
   },
   handle: async (context, params) => {
     const { url } = NavigateTool.shape.arguments.parse(params);
+
+    // Security: Restrict allowed protocols to prevent SSRF and LFI vulnerabilities
+    const parsedUrl = new URL(url);
+    if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+      throw new Error(`Security Error: Navigation to scheme '${parsedUrl.protocol}' is prohibited. Only http and https are allowed.`);
+    }
+
     await context.sendSocketMessage("browser_navigate", { url });
     if (snapshot) {
       return captureAriaSnapshot(context);
