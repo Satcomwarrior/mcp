@@ -13,5 +13,6 @@ export async function createWebSocketServer(
   while (await isPortInUse(port)) {
     await wait(100);
   }
-  return new WebSocketServer({ port });
+  // Explicitly bind to 127.0.0.1 to prevent external network access
+  return new WebSocketServer({ port, host: "127.0.0.1" });
 }
