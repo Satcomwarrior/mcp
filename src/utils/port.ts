@@ -1,4 +1,4 @@
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import net from "node:net";
 
 /**
@@ -28,15 +28,48 @@ export async function isPortInUse(port: number): Promise<boolean> {
 
 export function killProcessOnPort(port: number) {
   validatePort(port);
-  try {
-    if (process.platform === "win32") {
-      execSync(
-        `FOR /F "tokens=5" %a in ('netstat -ano ^| findstr :${port}') do taskkill /F /PID %a`,
-      );
-    } else {
-      execSync(`lsof -ti:${port} | xargs kill -9`);
+  if (process.platform === "win32") {
+    try {
+      const output = execFileSync("netstat", ["-ano"], { encoding: "utf8" });
+      const lines = output.split("\n");
+      for (const line of lines) {
+        const parts = line.trim().split(/\s+/);
+        if (
+          parts.length >= 5 &&
+          parts[1].endsWith(`:${port}`) &&
+          parts[3] === "LISTENING"
+        ) {
+          const pid = parts[4];
+          if (/^\d+$/.test(pid)) {
+            try {
+              execFileSync("taskkill", ["/F", "/PID", pid]);
+            } catch (err) {
+              // Ignore individual kill errors
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error(`Failed to execute netstat for port ${port}:`, error);
     }
-  } catch (error) {
-    console.error(`Failed to kill process on port ${port}:`, error);
+  } else {
+    try {
+      const output = execFileSync("lsof", ["-i", `:${port}`, "-t"], { encoding: "utf8" });
+      const pids = output.trim().split("\n");
+      for (const pidStr of pids) {
+        const pid = parseInt(pidStr, 10);
+        if (!isNaN(pid)) {
+          try {
+            process.kill(pid, "SIGKILL");
+          } catch (err) {
+            // Ignore individual kill errors
+          }
+        }
+      }
+    } catch (error: any) {
+      if (error.status !== 1) {
+        console.error(`Failed to kill process on port ${port}:`, error);
+      }
+    }
   }
 }
