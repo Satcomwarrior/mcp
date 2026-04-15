@@ -89,6 +89,8 @@ export function validatePrice(price: string | number): {
   return { valid: true, value: num };
 }
 
+const formatterCache = new Map<string, Intl.NumberFormat>();
+
 /**
  * Format price for display
  */
@@ -98,13 +100,21 @@ export function formatPrice(price: number, currency = "USD"): string {
   }
   
   const maxDecimals = (currency === "USDT" || currency === "USD" || currency === "EUR" || currency === "GBP") ? 2 : 8;
+  const targetCurrency = currency === "USDT" ? "USD" : currency;
+  const cacheKey = `${targetCurrency}-${maxDecimals}`;
+
+  let formatter = formatterCache.get(cacheKey);
+  if (!formatter) {
+    formatter = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: targetCurrency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: maxDecimals,
+    });
+    formatterCache.set(cacheKey, formatter);
+  }
   
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: currency === "USDT" ? "USD" : currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: maxDecimals,
-  }).format(price);
+  return formatter.format(price);
 }
 
 /**
