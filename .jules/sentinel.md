@@ -7,3 +7,9 @@
 **Prevention:**
 1.  **Strict Input Validation:** Added `validatePort` to strictly check for integers and valid port range (0-65535).
 2.  **Use Safer APIs:** Where possible, use `execFile` or `spawn` which treat arguments as data, not code. In this case, validation was the chosen fix as `execSync` with shell features (pipes, `findstr`) was required for the specific logic.
+
+## 2025-01-20 - [Critical] Eliminating Shell Execution in Port Management
+
+**Vulnerability:** Shell execution was still being used for process termination via `execSync("lsof -ti:${port} | xargs kill -9")` despite input validation, keeping a theoretical shell injection path open.
+**Learning:** Shell commands with pipes and filters can be completely replaced by parsing process outputs (via `execFileSync` without a shell) and using standard Node APIs like `process.kill`.
+**Prevention:** Do not rely on input validation alone when unsafe sinks (`execSync`) can be fully replaced by safe alternatives (`execFileSync` with argument arrays and `process.kill`).
