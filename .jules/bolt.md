@@ -1,3 +1,6 @@
 ## 2026-02-23 - Regex Compilation Optimization
 **Learning:** Extracting regex literals to module-level constants in `src/utils/eth.ts` significantly improved performance for simple validation checks (`isValidEthAddress` improved by ~50%, 39ms -> 20ms for 100k iterations). However, complex matching regexes (`parseTradingPair`) showed negligible performance improvement, likely due to execution cost dominating compilation cost or internal caching mechanisms.
 **Action:** Prioritize extracting simple validation regexes used in high-frequency paths (like `test()` calls). Always benchmark to confirm impact, as complexity of the regex and usage pattern (test vs match) affects the optimization gain.
+## 2026-02-23 - Optimizing Snapshot Text Extraction
+**Learning:** Using a single-pass `for` loop with string concatenation (`+=`) to extract text from `ToolResult` snapshots is significantly faster (up to ~3x) than chaining `.filter().map().join('\n')`. The chained array methods allocate intermediate arrays, which adds considerable memory and processing overhead in hot paths involving large aria snapshots.
+**Action:** Standardize the use of a `getSnapshotText` utility function that utilizes a fast loop to extract snapshot text, replacing chained array iterations to improve overall response times.
