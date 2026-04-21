@@ -95,16 +95,15 @@ export const getGasPrice: Tool = {
       .join("\n");
 
     // Gas price patterns (common on Etherscan, exchanges, wallets)
-    const gasPatterns = [
-      /(?:slow|low|standard|average|fast|rapid).*?(\d+\.?\d*)\s*gwei/gi,
-      /gas.*?(\d+\.?\d*)\s*gwei/gi,
-      /(\d+\.?\d*)\s*gwei/gi,
-    ];
+    const FAST_PATH = /gwei/i;
+    const COMBINED_GAS_PATTERN = /(?:(?:slow|low|standard|average|fast|rapid).*?(\d+\.?\d*)\s*gwei)|(?:gas.*?(\d+\.?\d*)\s*gwei)|(?:(\d+\.?\d*)\s*gwei)/i;
 
     const gasPrices: { type: string; value: string }[] = [];
     const lines = snapshotText.split("\n");
 
     for (const line of lines) {
+      if (!FAST_PATH.test(line)) continue;
+
       const lowerLine = line.toLowerCase();
       
       // Try to identify gas price type
@@ -115,15 +114,12 @@ export const getGasPrice: Tool = {
         gasType = "fast";
       }
 
-      for (const pattern of gasPatterns) {
-        const match = line.match(pattern);
-        if (match) {
-          gasPrices.push({
-            type: gasType,
-            value: match[0],
-          });
-          break;
-        }
+      const match = line.match(COMBINED_GAS_PATTERN);
+      if (match) {
+        gasPrices.push({
+          type: gasType,
+          value: match[0],
+        });
       }
     }
 
