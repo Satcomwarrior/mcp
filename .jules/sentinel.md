@@ -7,3 +7,9 @@
 **Prevention:**
 1.  **Strict Input Validation:** Added `validatePort` to strictly check for integers and valid port range (0-65535).
 2.  **Use Safer APIs:** Where possible, use `execFile` or `spawn` which treat arguments as data, not code. In this case, validation was the chosen fix as `execSync` with shell features (pipes, `findstr`) was required for the specific logic.
+
+## 2025-02-23 - [High] Unintended Network Exposure in Local Servers
+
+**Vulnerability:** The `WebSocketServer` in `src/ws.ts` and `net.createServer()` in `src/utils/port.ts` lacked an explicit host binding, causing them to bind to all available network interfaces (`0.0.0.0` or `::`).
+**Learning:** For local CLI tools and agents, relying on the default host behavior is a significant security risk, as it exposes the server to external networks.
+**Prevention:** Always explicitly bind local network servers to `host: '127.0.0.1'` to ensure they are strictly accessible only from the local machine.
