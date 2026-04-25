@@ -7,3 +7,11 @@
 **Prevention:**
 1.  **Strict Input Validation:** Added `validatePort` to strictly check for integers and valid port range (0-65535).
 2.  **Use Safer APIs:** Where possible, use `execFile` or `spawn` which treat arguments as data, not code. In this case, validation was the chosen fix as `execSync` with shell features (pipes, `findstr`) was required for the specific logic.
+
+## 2026-02-23 - [HIGH] Insecure Server Binding
+
+**Vulnerability:** The local WebSocket server in `src/ws.ts` and port checking logic in `src/utils/port.ts` bind to the default address (`0.0.0.0` or `::`), exposing the services on all network interfaces instead of restricting them to localhost.
+
+**Learning:** Node.js HTTP/WebSocket server constructors without an explicit host bind to `::` by default. This makes the local tooling accessible to devices on the same local network, which can be a severe risk without authentication.
+
+**Prevention:** Always specify `host: '127.0.0.1'` when starting servers or running local networking tooling meant only for internal/local consumption.
