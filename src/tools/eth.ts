@@ -6,6 +6,8 @@ import { captureAriaSnapshot } from "@/utils/aria-snapshot";
 
 import type { Tool } from "./tool";
 
+const GWEI_TEST_REGEX = /gwei/i;
+
 // ETH-specific tool schemas
 const GetGasPriceTool = z.object({
   name: z.literal("browser_get_gas_price"),
@@ -105,19 +107,22 @@ export const getGasPrice: Tool = {
     const lines = snapshotText.split("\n");
 
     for (const line of lines) {
-      const lowerLine = line.toLowerCase();
-      
-      // Try to identify gas price type
-      let gasType = "standard";
-      if (lowerLine.includes("slow") || lowerLine.includes("low")) {
-        gasType = "slow";
-      } else if (lowerLine.includes("fast") || lowerLine.includes("rapid")) {
-        gasType = "fast";
-      }
+      // Bolt: Fast-path filter to skip irrelevant lines and avoid expensive string operations
+      if (!GWEI_TEST_REGEX.test(line)) continue;
 
       for (const pattern of gasPatterns) {
         const match = line.match(pattern);
         if (match) {
+          const lowerLine = line.toLowerCase();
+
+          // Try to identify gas price type
+          let gasType = "standard";
+          if (lowerLine.includes("slow") || lowerLine.includes("low")) {
+            gasType = "slow";
+          } else if (lowerLine.includes("fast") || lowerLine.includes("rapid")) {
+            gasType = "fast";
+          }
+
           gasPrices.push({
             type: gasType,
             value: match[0],
