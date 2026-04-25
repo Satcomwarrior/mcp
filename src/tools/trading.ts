@@ -262,6 +262,23 @@ export const monitorPrice: Tool = {
   },
 };
 
+// Pre-compile portfolio keywords into a single case-insensitive regex.
+// This provides a significant performance boost over the previous Array.some() + repeated toLowerCase() approach
+// when scanning thousands of lines in large snapshots.
+const PORTFOLIO_KEYWORDS = [
+  "balance",
+  "equity",
+  "position",
+  "holdings",
+  "portfolio",
+  "total",
+  "profit",
+  "loss",
+  "P&L",
+  "PnL",
+];
+const PORTFOLIO_REGEX = new RegExp(PORTFOLIO_KEYWORDS.join("|"), "i");
+
 export const getPortfolio: Tool = {
   schema: {
     name: GetPortfolioTool.shape.name.value,
@@ -277,26 +294,11 @@ export const getPortfolio: Tool = {
       .map((c) => (c as any).text)
       .join("\n");
     
-    // Look for portfolio-related keywords
-    const portfolioKeywords = [
-      "balance",
-      "equity",
-      "position",
-      "holdings",
-      "portfolio",
-      "total",
-      "profit",
-      "loss",
-      "P&L",
-      "PnL",
-    ];
-    
     const portfolioInfo: string[] = [];
     const lines = snapshotText.split("\n");
     
     for (const line of lines) {
-      const lowerLine = line.toLowerCase();
-      if (portfolioKeywords.some((keyword) => lowerLine.includes(keyword.toLowerCase()))) {
+      if (PORTFOLIO_REGEX.test(line)) {
         portfolioInfo.push(line.trim());
       }
     }
