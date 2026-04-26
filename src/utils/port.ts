@@ -1,4 +1,4 @@
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import net from "node:net";
 
 /**
@@ -28,15 +28,47 @@ export async function isPortInUse(port: number): Promise<boolean> {
 
 export function killProcessOnPort(port: number) {
   validatePort(port);
-  try {
-    if (process.platform === "win32") {
-      execSync(
-        `FOR /F "tokens=5" %a in ('netstat -ano ^| findstr :${port}') do taskkill /F /PID %a`,
-      );
-    } else {
-      execSync(`lsof -ti:${port} | xargs kill -9`);
+  if (process.platform === "win32") {
+    try {
+      const output = execFileSync("netstat", ["-ano"], { encoding: "utf-8" });
+      const lines = output.split("\n");
+      const pidsToKill = new Set<string>();
+
+      for (const line of lines) {
+        const parts = line.trim().split(/\s+/);
+        if ((parts.length === 4 || parts.length === 5) && parts[1].endsWith(`:${port}`)) {
+          const pid = parts[parts.length - 1];
+          if (pid && pid !== "0") {
+            pidsToKill.add(pid);
+          }
+        }
+      }
+
+      for (const pid of pidsToKill) {
+        try {
+          execFileSync("taskkill", ["/F", "/PID", pid]);
+        } catch (err) {
+          console.error(`Failed to kill PID ${pid} on port ${port}:`, err);
+        }
+      }
+    } catch (error) {
+      console.error(`Failed to get netstat for port ${port}:`, error);
     }
-  } catch (error) {
-    console.error(`Failed to kill process on port ${port}:`, error);
+  } else {
+    try {
+      const output = execFileSync("lsof", ["-t", `-i:${port}`], { encoding: "utf-8" });
+      const pids = output.trim().split("\n").filter(Boolean);
+      for (const pid of pids) {
+        try {
+          process.kill(parseInt(pid, 10), "SIGKILL");
+        } catch (err) {
+          console.error(`Failed to kill PID ${pid} on port ${port}:`, err);
+        }
+      }
+    } catch (error: any) {
+      if (error.status !== 1) {
+        console.error(`Failed to kill process on port ${port}:`, error);
+      }
+    }
   }
 }
