@@ -89,6 +89,24 @@ export function validatePrice(price: string | number): {
   return { valid: true, value: num };
 }
 
+// Cache for Intl.NumberFormat instances to significantly improve performance
+const numberFormatCache = new Map<string, Intl.NumberFormat>();
+
+function getNumberFormat(currency: string, maxDecimals: number): Intl.NumberFormat {
+  const key = `${currency}-${maxDecimals}`;
+  let format = numberFormatCache.get(key);
+  if (!format) {
+    format = new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: currency === "USDT" ? "USD" : currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: maxDecimals,
+    });
+    numberFormatCache.set(key, format);
+  }
+  return format;
+}
+
 /**
  * Format price for display
  */
@@ -99,12 +117,7 @@ export function formatPrice(price: number, currency = "USD"): string {
   
   const maxDecimals = (currency === "USDT" || currency === "USD" || currency === "EUR" || currency === "GBP") ? 2 : 8;
   
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: currency === "USDT" ? "USD" : currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: maxDecimals,
-  }).format(price);
+  return getNumberFormat(currency, maxDecimals).format(price);
 }
 
 /**
