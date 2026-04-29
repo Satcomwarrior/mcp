@@ -65,24 +65,13 @@ export const positions: Resource = {
       .join("\n");
 
     // Look for position-related data
-    const positionKeywords = [
-      "position",
-      "holdings",
-      "quantity",
-      "qty",
-      "shares",
-      "coins",
-      "P&L",
-      "profit",
-      "loss",
-    ];
+    const POSITIONS_REGEX = /position|holdings|quantity|qty|shares|coins|p&l|profit|loss/i;
 
     const positionLines: string[] = [];
     const lines = snapshotText.split("\n");
 
     for (const line of lines) {
-      const lowerLine = line.toLowerCase();
-      if (positionKeywords.some((keyword) => lowerLine.includes(keyword))) {
+      if (POSITIONS_REGEX.test(line)) {
         positionLines.push(line.trim());
       }
     }

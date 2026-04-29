@@ -278,25 +278,13 @@ export const getPortfolio: Tool = {
       .join("\n");
     
     // Look for portfolio-related keywords
-    const portfolioKeywords = [
-      "balance",
-      "equity",
-      "position",
-      "holdings",
-      "portfolio",
-      "total",
-      "profit",
-      "loss",
-      "P&L",
-      "PnL",
-    ];
+    const PORTFOLIO_REGEX = /balance|equity|position|holdings|portfolio|total|profit|loss|p&l|pnl/i;
     
     const portfolioInfo: string[] = [];
     const lines = snapshotText.split("\n");
     
     for (const line of lines) {
-      const lowerLine = line.toLowerCase();
-      if (portfolioKeywords.some((keyword) => lowerLine.includes(keyword.toLowerCase()))) {
+      if (PORTFOLIO_REGEX.test(line)) {
         portfolioInfo.push(line.trim());
       }
     }
