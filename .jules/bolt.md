@@ -1,3 +1,6 @@
 ## 2026-02-23 - Regex Compilation Optimization
 **Learning:** Extracting regex literals to module-level constants in `src/utils/eth.ts` significantly improved performance for simple validation checks (`isValidEthAddress` improved by ~50%, 39ms -> 20ms for 100k iterations). However, complex matching regexes (`parseTradingPair`) showed negligible performance improvement, likely due to execution cost dominating compilation cost or internal caching mechanisms.
 **Action:** Prioritize extracting simple validation regexes used in high-frequency paths (like `test()` calls). Always benchmark to confirm impact, as complexity of the regex and usage pattern (test vs match) affects the optimization gain.
+## 2023-10-25 - Regex Test Fast-Path Optimization
+**Learning:** In text parsing functions like `getGasPrice` that iterate over many lines (e.g. from an Aria snapshot), unconditionally performing string operations like `.toLowerCase()` on every line creates significant overhead. Utilizing a pre-compiled `RegExp.test()` (like `/gwei/i.test(line)`) to short-circuit the processing of irrelevant lines avoids string allocation and complex regex evaluation entirely.
+**Action:** When extracting data from large text blocks by lines, implement a simple, pre-compiled regex fast-path check before doing any `.toLowerCase()` calls or running complex extraction regex patterns.
