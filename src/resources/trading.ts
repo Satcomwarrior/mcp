@@ -3,6 +3,12 @@ import { captureAriaSnapshot } from "@/utils/aria-snapshot";
 
 import type { Resource } from "./resource";
 
+// Pre-compiled regular expressions for performance
+const POSITION_KEYWORDS_REGEX = new RegExp(
+  ["position", "holdings", "quantity", "qty", "shares", "coins", "p&l", "profit", "loss"].join("|"),
+  "i"
+);
+
 /**
  * Trading watchlist resource
  * Provides access to monitored trading symbols and their current status
@@ -64,25 +70,11 @@ export const positions: Resource = {
       .map((c) => (c as any).text)
       .join("\n");
 
-    // Look for position-related data
-    const positionKeywords = [
-      "position",
-      "holdings",
-      "quantity",
-      "qty",
-      "shares",
-      "coins",
-      "P&L",
-      "profit",
-      "loss",
-    ];
-
     const positionLines: string[] = [];
     const lines = snapshotText.split("\n");
 
     for (const line of lines) {
-      const lowerLine = line.toLowerCase();
-      if (positionKeywords.some((keyword) => lowerLine.includes(keyword))) {
+      if (POSITION_KEYWORDS_REGEX.test(line)) {
         positionLines.push(line.trim());
       }
     }
