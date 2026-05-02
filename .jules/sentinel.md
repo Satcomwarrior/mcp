@@ -7,3 +7,8 @@
 **Prevention:**
 1.  **Strict Input Validation:** Added `validatePort` to strictly check for integers and valid port range (0-65535).
 2.  **Use Safer APIs:** Where possible, use `execFile` or `spawn` which treat arguments as data, not code. In this case, validation was the chosen fix as `execSync` with shell features (pipes, `findstr`) was required for the specific logic.
+
+## 2026-02-23 - [HIGH] Missing Localhost Binding on Automation WebSockets
+**Vulnerability:** The automation WebSocket server (`WebSocketServer`) in `src/ws.ts` did not specify a host, binding to all interfaces (`::` or `0.0.0.0`) by default. This exposes automation commands and internal endpoints to external network access if the machine lacks strict firewall rules.
+**Learning:** Node.js network servers without an explicit host configuration default to 'all interfaces'. This is a severe risk for local tools or automation agents running on personal machines or CI runners.
+**Prevention:** Explicitly set `host: '127.0.0.1'` when instantiating internal local servers, including standard `net.createServer` and `WebSocketServer`, to strictly limit access to local processes only.
