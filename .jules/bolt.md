@@ -1,3 +1,6 @@
 ## 2026-02-23 - Regex Compilation Optimization
 **Learning:** Extracting regex literals to module-level constants in `src/utils/eth.ts` significantly improved performance for simple validation checks (`isValidEthAddress` improved by ~50%, 39ms -> 20ms for 100k iterations). However, complex matching regexes (`parseTradingPair`) showed negligible performance improvement, likely due to execution cost dominating compilation cost or internal caching mechanisms.
 **Action:** Prioritize extracting simple validation regexes used in high-frequency paths (like `test()` calls). Always benchmark to confirm impact, as complexity of the regex and usage pattern (test vs match) affects the optimization gain.
+## 2026-02-23 - Intl.NumberFormat Instantiation Bottleneck
+**Learning:** Instantiating `Intl.NumberFormat` repeatedly inside hot-path formatting loops (like `formatPrice`) introduces significant performance overhead in V8. Caching the formatter instances mapped by varying configuration parameters dramatically reduces GC overhead and execution time.
+**Action:** Always extract and cache `Intl.NumberFormat` (or `Intl.DateTimeFormat`) instances using module-level maps or memos when they are used in high-frequency formatting functions.
