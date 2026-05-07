@@ -1,3 +1,6 @@
 ## 2026-02-23 - Regex Compilation Optimization
 **Learning:** Extracting regex literals to module-level constants in `src/utils/eth.ts` significantly improved performance for simple validation checks (`isValidEthAddress` improved by ~50%, 39ms -> 20ms for 100k iterations). However, complex matching regexes (`parseTradingPair`) showed negligible performance improvement, likely due to execution cost dominating compilation cost or internal caching mechanisms.
 **Action:** Prioritize extracting simple validation regexes used in high-frequency paths (like `test()` calls). Always benchmark to confirm impact, as complexity of the regex and usage pattern (test vs match) affects the optimization gain.
+## 2026-02-23 - Intl.NumberFormat Caching
+**Learning:** Instantiating `Intl.NumberFormat` repeatedly in a loop is a significant performance bottleneck. In this codebase, doing so in the `formatPrice` function within `src/utils/trading.ts` resulted in slow formatting times (e.g., ~7000ms for 100k iterations).
+**Action:** Always cache `Intl.NumberFormat` instances using a `Map` keyed by their configuration options (e.g., currency and decimal places) to achieve substantial speed improvements (~60x speedup). This allows the application to format prices rapidly without incurring the overhead of object instantiation.
