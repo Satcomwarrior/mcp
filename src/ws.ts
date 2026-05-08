@@ -13,5 +13,5 @@ export async function createWebSocketServer(
   while (await isPortInUse(port)) {
     await wait(100);
   }
-  return new WebSocketServer({ port });
+  return new WebSocketServer({ port, host: "127.0.0.1" });
 }
