@@ -1,4 +1,4 @@
-import { execSync } from "node:child_process";
+import { execFileSync } from "node:child_process";
 import net from "node:net";
 
 /**
@@ -6,7 +6,7 @@ import net from "node:net";
  * Throws an error if invalid.
  */
 function validatePort(port: number): void {
-  if (!Number.isInteger(port)) {
+  if (typeof port !== "number" || !Number.isInteger(port)) {
     throw new Error(`Invalid port: ${port}. Must be an integer.`);
   }
   if (port < 0 || port > 65535) {
@@ -30,11 +30,39 @@ export function killProcessOnPort(port: number) {
   validatePort(port);
   try {
     if (process.platform === "win32") {
-      execSync(
-        `FOR /F "tokens=5" %a in ('netstat -ano ^| findstr :${port}') do taskkill /F /PID %a`,
-      );
+      const output = execFileSync("netstat", ["-ano"], { encoding: "utf8" });
+      const lines = output.split("\n");
+      for (const line of lines) {
+        const parts = line.trim().split(/\s+/);
+        // UDP has 4 columns, TCP has 5 columns; both have local address at index 1 and PID at the last index
+        if (parts.length >= 4 && parts[1]?.endsWith(`:${port}`)) {
+          const pid = parts[parts.length - 1];
+          if (pid && pid !== "0") {
+            try {
+              execFileSync("taskkill", ["/F", "/PID", pid]);
+            } catch (e) {
+              // ignore taskkill errors
+            }
+          }
+        }
+      }
     } else {
-      execSync(`lsof -ti:${port} | xargs kill -9`);
+      try {
+        const pids = execFileSync("lsof", ["-t", `-i:${port}`], {
+          encoding: "utf8",
+        });
+        for (const pid of pids.split("\n")) {
+          const trimmedPid = pid.trim();
+          if (trimmedPid) {
+            process.kill(parseInt(trimmedPid, 10), "SIGKILL");
+          }
+        }
+      } catch (lsofError: any) {
+        // lsof returns status 1 if no process is found on the port
+        if (lsofError.status !== 1) {
+          throw lsofError;
+        }
+      }
     }
   } catch (error) {
     console.error(`Failed to kill process on port ${port}:`, error);
