@@ -1,0 +1,36 @@
+name: Jules Weekly Cleanup
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Invoke Jules
+        uses: google-labs-code/jules-invoke@v1
+        with:
+          prompt: |
+            Analyze the codebase and perform maintenance tasks.
+
+            Focus Areas:
+            1. **Dead Code Removal** - unused variables, functions, imports, commented-out blocks, unreachable paths
+            2. **Code Duplication** - identify duplicated blocks, refactor into reusable utilities, apply DRY principles
+            3. **Naming Improvements** - unclear variable/function names, apply consistent naming conventions
+            4. **File Organization** - files that should be moved, consolidated, or split
+            5. **Comment Hygiene** - stale comments, clarify confusing sections
+
+            Guidelines:
+            - Make incremental, safe refactorings only
+            - Preserve existing functionality completely
+            - Do NOT open a PR for cosmetic-only changes
+            - Group related changes into logical commits
+
+          jules_api_key: ${{ secrets.JULES_API_KEY }}
+          starting_branch: 'main'
+          include_commit_log: true
