@@ -1,0 +1,39 @@
+name: Jules Script Hardener
+
+on:
+  schedule:
+    - cron: '0 4 * * 1'
+  workflow_dispatch:
+
+jobs:
+  harden:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Invoke Jules
+        uses: google-labs-code/jules-invoke@v1
+        with:
+          prompt: |
+            Improve reliability of scripts in this repo without changing their CLI flags, output contract, or file paths.
+
+            Focus areas:
+            - Add timeouts and retries to network calls
+            - Add input validation with clear error messages
+            - Handle edge cases (empty files, missing dirs, null values)
+            - Add structured logging (INFO / DEBUG / ERROR levels)
+            - Replace unsafe defaults with safe fallbacks
+            - Add graceful shutdown signal handlers
+            - Fix potential race conditions in async operations
+            - Add retry logic with exponential backoff for transient failures
+
+            Constraints:
+            - Do NOT change CLI arguments or output format
+            - Do NOT change file paths or naming conventions
+            - Keep changes minimal and targeted
+            - Only open a PR if there are actual improvements to make
+
+          jules_api_key: ${{ secrets.JULES_API_KEY }}
+          starting_branch: 'main'
+          include_commit_log: true
