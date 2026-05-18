@@ -174,32 +174,46 @@ export const getEthBalance: Tool = {
       /USD.*?[\d,]+\.?\d*/gi,
     ];
 
-    const balances: string[] = [];
-    const usdValues: string[] = [];
+    const balances = new Set<string>();
+    const usdValues = new Set<string>();
 
     for (const pattern of balancePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        balances.push(...matches);
+      pattern.lastIndex = 0;
+      let match;
+      while ((match = pattern.exec(snapshotText)) !== null) {
+        balances.add(match[0]);
+        if (balances.size >= 10) break;
       }
+      if (balances.size >= 10) break;
     }
 
     if (includeTokens) {
       // Look for ERC-20 token balances
       const tokenPattern = /(\d+\.?\d*)\s*([A-Z]{2,10})\b/g;
-      const tokens = snapshotText.match(tokenPattern) || [];
-      balances.push(...tokens.filter(t => !t.includes('ETH')));
-    }
-
-    for (const pattern of usdPatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        usdValues.push(...matches.slice(0, 3)); // Limit to first 3 USD values
+      let match;
+      while ((match = tokenPattern.exec(snapshotText)) !== null) {
+        if (!match[0].includes('ETH')) {
+          balances.add(match[0]);
+          if (balances.size >= 10) break;
+        }
       }
     }
 
-    const uniqueBalances = [...new Set(balances)].slice(0, 10);
-    const uniqueUsdValues = [...new Set(usdValues)].slice(0, 5);
+    for (const pattern of usdPatterns) {
+      pattern.lastIndex = 0;
+      let match;
+      let patternMatches = 0;
+      while ((match = pattern.exec(snapshotText)) !== null) {
+        usdValues.add(match[0]);
+        patternMatches++;
+        // Maintain the original limit of 3 matches per pattern, and max 5 overall
+        if (patternMatches >= 3 || usdValues.size >= 5) break;
+      }
+      if (usdValues.size >= 5) break;
+    }
+
+    const uniqueBalances = Array.from(balances).slice(0, 10);
+    const uniqueUsdValues = Array.from(usdValues).slice(0, 5);
 
     let result = "ETH Balance Information:\n";
     if (uniqueBalances.length > 0) {
