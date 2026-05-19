@@ -11,3 +11,8 @@
 **Vulnerability:** Node.js `net.createServer()` and `WebSocketServer` bind to all network interfaces (`::` or `0.0.0.0`) by default if no host is specified, exposing local automation endpoints to external networks.
 **Learning:** Internal tools relying on default Node.js host binding can become remote code execution vectors.
 **Prevention:** Always explicitly provide the `host: '127.0.0.1'` configuration parameter when instantiating local network servers.
+
+## 2024-06-11 - [SSRF/LFI via Unvalidated URL Protocols]
+**Vulnerability:** The browser `navigate` tool accepted arbitrary URLs without protocol validation, allowing potentially dangerous protocols like `file:` (LFI) or `javascript:` (XSS).
+**Learning:** Even internal tool execution endpoints can be vectors for SSRF/LFI if they blindly pass user-controlled URLs to underlying systems (like a browser). Furthermore, URL parsing in Node.js handles scheme-less strings unexpectedly, and must be prefixed with a default scheme prior to validation.
+**Prevention:** Always validate and explicitly allowlist expected URL protocols (e.g., `http:` and `https:`) before passing them to internal navigation or request utilities. Wrap URL parsing in a `try-catch` block to handle invalid inputs safely.
