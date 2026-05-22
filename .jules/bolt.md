@@ -4,3 +4,6 @@
 ## 2026-02-23 - Intl.NumberFormat Caching
 **Learning:** Instantiating `Intl.NumberFormat` repeatedly in a loop is a massive performance bottleneck. In this codebase's `src/utils/trading.ts` utility, formatting 10,000 prices dropped from ~4166ms to ~60ms (~69x speedup) simply by caching the formatter instance using a `Map` keyed by the currency and decimal configuration.
 **Action:** Always look for internal JavaScript globalization or formatting objects (like `Intl.NumberFormat`, `Intl.DateTimeFormat`) being created inside functions that are called frequently or in loops. Cache them aggressively using appropriate unique keys.
+## 2026-05-22 - Optimization: Safe regex matching in loops
+**Learning:** Using `array.push(...matches)` with `String.prototype.match()` in loops over very large strings (like ARIA snapshots) can cause `RangeError: Maximum call stack size exceeded` in Node.js due to argument limit on the spread operator. While `RegExp.exec()` in a while-loop is faster, it introduces fragility because it causes an infinite thread-blocking loop if the regex lacks the `g` flag.
+**Action:** Use `String.prototype.matchAll()` paired with a `Set` or manual array pushing. `matchAll()` is strictly safer because it actively enforces the presence of the `g` flag (throwing an error otherwise), and iterating over it doesn't cause stack limits.
