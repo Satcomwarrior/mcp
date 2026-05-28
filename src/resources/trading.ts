@@ -132,9 +132,13 @@ export const marketSummary: Resource = {
     const marketData: Record<string, string[]> = {};
     
     for (const [key, pattern] of Object.entries(marketPatterns)) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        marketData[key] = [...new Set(matches)].slice(0, 10);
+      const uniqueMatches = new Set<string>();
+      for (const match of snapshotText.matchAll(pattern)) {
+        uniqueMatches.add(match[0]);
+        if (uniqueMatches.size >= 10) break;
+      }
+      if (uniqueMatches.size > 0) {
+        marketData[key] = Array.from(uniqueMatches);
       }
     }
 
