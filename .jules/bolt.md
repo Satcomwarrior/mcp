@@ -4,3 +4,6 @@
 ## 2026-02-23 - Intl.NumberFormat Caching
 **Learning:** Instantiating `Intl.NumberFormat` repeatedly in a loop is a massive performance bottleneck. In this codebase's `src/utils/trading.ts` utility, formatting 10,000 prices dropped from ~4166ms to ~60ms (~69x speedup) simply by caching the formatter instance using a `Map` keyed by the currency and decimal configuration.
 **Action:** Always look for internal JavaScript globalization or formatting objects (like `Intl.NumberFormat`, `Intl.DateTimeFormat`) being created inside functions that are called frequently or in loops. Cache them aggressively using appropriate unique keys.
+## 2026-06-02 - Array Slice Memory Allocations in Loops
+**Learning:** Reusing the spread operator combined with `slice()` in regex global `match()` evaluations (e.g., `array.push(...matches.slice(0, N))`) on very large inputs (like ARIA snapshots) creates massive unnecessary memory allocations and forces the regex engine to parse the entire string.
+**Action:** Always replace greedy global regex evaluations inside bounded loops with lazy `matchAll()` iterators and early `break` statements to limit memory overhead and drastically improve processing speed.
