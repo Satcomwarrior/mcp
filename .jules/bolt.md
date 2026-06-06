@@ -4,3 +4,6 @@
 ## 2026-02-23 - Intl.NumberFormat Caching
 **Learning:** Instantiating `Intl.NumberFormat` repeatedly in a loop is a massive performance bottleneck. In this codebase's `src/utils/trading.ts` utility, formatting 10,000 prices dropped from ~4166ms to ~60ms (~69x speedup) simply by caching the formatter instance using a `Map` keyed by the currency and decimal configuration.
 **Action:** Always look for internal JavaScript globalization or formatting objects (like `Intl.NumberFormat`, `Intl.DateTimeFormat`) being created inside functions that are called frequently or in loops. Cache them aggressively using appropriate unique keys.
+## 2024-05-14 - String.prototype.match(/g/) Full String Evaluation
+**Learning:** `String.prototype.match()` eagerly evaluates the entire string when the `/g` flag is present, even if you only need the first few matches and slice the resulting array immediately (e.g. `matches.slice(0, 3)`). This causes a severe hidden performance bottleneck on massive payloads like ARIA snapshots. You cannot just remove the `/g` flag as an optimization because it breaks the returned array structure (capture groups become array elements).
+**Action:** Always replace `String.prototype.match(/g/)` calls that only need a limited number of items with a lazy `String.prototype.matchAll()` iterator and an early `break` inside a loop.
