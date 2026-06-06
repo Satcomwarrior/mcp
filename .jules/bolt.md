@@ -4,3 +4,6 @@
 ## 2026-02-23 - Intl.NumberFormat Caching
 **Learning:** Instantiating `Intl.NumberFormat` repeatedly in a loop is a massive performance bottleneck. In this codebase's `src/utils/trading.ts` utility, formatting 10,000 prices dropped from ~4166ms to ~60ms (~69x speedup) simply by caching the formatter instance using a `Map` keyed by the currency and decimal configuration.
 **Action:** Always look for internal JavaScript globalization or formatting objects (like `Intl.NumberFormat`, `Intl.DateTimeFormat`) being created inside functions that are called frequently or in loops. Cache them aggressively using appropriate unique keys.
+## 2026-02-23 - Exec Loop Infinite Vulnerability
+**Learning:** Manual `while ((match = regex.exec(text)) !== null)` loops are critically vulnerable to infinite loops if the regex matches a zero-width string (empty string), because `exec()` does not automatically advance `lastIndex` in that scenario.
+**Action:** Avoid manual `exec()` loops. Instead, always use `String.prototype.matchAll()` for lazy regex iteration with early exits. Ensure safety by cloning the regex to explicitly append the `g` flag (`new RegExp(p.source, p.flags + 'g')`) to avoid the `TypeError` strictly thrown by `matchAll` for non-global regexes.
