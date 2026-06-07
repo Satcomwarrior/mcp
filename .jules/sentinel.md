@@ -11,3 +11,8 @@
 **Vulnerability:** Node.js `net.createServer()` and `WebSocketServer` bind to all network interfaces (`::` or `0.0.0.0`) by default if no host is specified, exposing local automation endpoints to external networks.
 **Learning:** Internal tools relying on default Node.js host binding can become remote code execution vectors.
 **Prevention:** Always explicitly provide the `host: '127.0.0.1'` configuration parameter when instantiating local network servers.
+## 2024-06-08 - [Critical] Unvalidated URLs in Browser Navigation
+
+**Vulnerability:** The `navigate` tool accepted unvalidated URLs, allowing malicious schemes like `javascript:`, `file:`, and `data:` to be passed directly to the browser automation.
+**Learning:** Browser automation endpoints are vulnerable to Local File Inclusion (LFI) and Cross-Site Scripting (XSS) if input URLs are not strictly validated to allow only safe protocols (`http:` and `https:`).
+**Prevention:** Always parse and validate URLs against an explicit allowlist of safe protocols before navigating, and explicitly reject known dangerous schemes.
