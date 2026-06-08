@@ -151,15 +151,16 @@ export const getPrice: Tool = {
       /Last:\s*\d[\d,]*\.?\d*/gi,
     ];
     
-    const prices: string[] = [];
+    // Optimized: Use Set and matchAll() for lazy evaluation to prevent call stack exceeded and improve performance
+    const uniquePricesSet = new Set<string>();
     for (const pattern of pricePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        prices.push(...matches);
+      const regex = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
+      for (const match of snapshotText.matchAll(regex)) {
+        uniquePricesSet.add(match[0]);
       }
     }
     
-    const uniquePrices = [...new Set(prices)];
+    const uniquePrices = Array.from(uniquePricesSet);
     
     return {
       content: [
@@ -366,20 +367,21 @@ export const getMarketData: Tool = {
       ? Object.keys(patterns)
       : dataPoints;
     
+    // Optimized: Use Set and matchAll() for lazy evaluation to prevent call stack exceeded and improve performance
     for (const point of requestedPoints) {
       if (point === "all") continue;
       const pointPatterns = patterns[point as keyof typeof patterns] || [];
-      const matches: string[] = [];
+      const uniqueMatchesSet = new Set<string>();
       
       for (const pattern of pointPatterns) {
-        const found = snapshotText.match(pattern);
-        if (found) {
-          matches.push(...found);
+        const regex = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
+        for (const match of snapshotText.matchAll(regex)) {
+          uniqueMatchesSet.add(match[0]);
         }
       }
       
-      if (matches.length > 0) {
-        marketData[point] = [...new Set(matches)];
+      if (uniqueMatchesSet.size > 0) {
+        marketData[point] = Array.from(uniqueMatchesSet);
       }
     }
     
