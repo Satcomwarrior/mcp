@@ -19,7 +19,51 @@ export const navigate: ToolFactory = (snapshot) => ({
     inputSchema: zodToJsonSchema(NavigateTool.shape.arguments),
   },
   handle: async (context, params) => {
-    const { url } = NavigateTool.shape.arguments.parse(params);
+    const { url: rawUrl } = NavigateTool.shape.arguments.parse(params);
+    let url = rawUrl;
+    let targetUrl = url.trim();
+    const hasScheme = targetUrl.includes("://");
+    const lowerUrl = targetUrl.toLowerCase();
+
+    // Prepend http:// if no scheme is provided and it's not a dangerous scheme
+    if (
+      !hasScheme &&
+      !(
+        lowerUrl.startsWith("javascript:") ||
+        lowerUrl.startsWith("file:") ||
+        lowerUrl.startsWith("data:") ||
+        lowerUrl.startsWith("about:")
+      )
+    ) {
+      targetUrl = `http://${targetUrl}`;
+    }
+
+    try {
+      const parsedUrl = new URL(targetUrl);
+      if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Security Error: Blocked navigation to unsafe protocol '${parsedUrl.protocol}'`,
+            },
+          ],
+          isError: true,
+        };
+      }
+      url = targetUrl;
+    } catch (e) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Security Error: Invalid URL provided`,
+          },
+        ],
+        isError: true,
+      };
+    }
+
     await context.sendSocketMessage("browser_navigate", { url });
     if (snapshot) {
       return captureAriaSnapshot(context);
