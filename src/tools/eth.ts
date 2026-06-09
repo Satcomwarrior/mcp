@@ -6,6 +6,22 @@ import { captureAriaSnapshot } from "@/utils/aria-snapshot";
 
 import type { Tool } from "./tool";
 
+/**
+ * Optimized helper: Extracts up to a specific limit of matches from text
+ * using lazy iteration to prevent processing the entire string unnecessarily.
+ */
+function extractMatchesLimit(text: string, pattern: RegExp, limit: number): string[] {
+  const result: string[] = [];
+  const safePattern = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
+  let count = 0;
+  for (const match of text.matchAll(safePattern)) {
+    result.push(match[0]);
+    count++;
+    if (count >= limit) break;
+  }
+  return result;
+}
+
 // ETH-specific tool schemas
 const GetGasPriceTool = z.object({
   name: z.literal("browser_get_gas_price"),
@@ -192,10 +208,7 @@ export const getEthBalance: Tool = {
     }
 
     for (const pattern of usdPatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        usdValues.push(...matches.slice(0, 3)); // Limit to first 3 USD values
-      }
+      usdValues.push(...extractMatchesLimit(snapshotText, pattern, 3));
     }
 
     const uniqueBalances = [...new Set(balances)].slice(0, 10);
@@ -265,24 +278,15 @@ export const getEthPairData: Tool = {
     ];
 
     for (const pattern of pricePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        pairData.price.push(...matches.slice(0, 3));
-      }
+      pairData.price.push(...extractMatchesLimit(snapshotText, pattern, 3));
     }
 
     for (const pattern of volumePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        pairData.volume.push(...matches.slice(0, 3));
-      }
+      pairData.volume.push(...extractMatchesLimit(snapshotText, pattern, 3));
     }
 
     for (const pattern of changePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        pairData.change.push(...matches.slice(0, 3));
-      }
+      pairData.change.push(...extractMatchesLimit(snapshotText, pattern, 3));
     }
 
     let result = `Trading Pair Data for ${pair}:\n`;
@@ -353,28 +357,19 @@ export const getDeFiData: Tool = {
 
     if (dataType === "apy" || dataType === "all") {
       for (const pattern of apyPatterns) {
-        const matches = snapshotText.match(pattern);
-        if (matches) {
-          defiData.apy.push(...matches.slice(0, 5));
-        }
+        defiData.apy.push(...extractMatchesLimit(snapshotText, pattern, 5));
       }
     }
 
     if (dataType === "liquidity" || dataType === "all") {
       for (const pattern of liquidityPatterns) {
-        const matches = snapshotText.match(pattern);
-        if (matches) {
-          defiData.liquidity.push(...matches.slice(0, 5));
-        }
+        defiData.liquidity.push(...extractMatchesLimit(snapshotText, pattern, 5));
       }
     }
 
     if (dataType === "staking" || dataType === "all") {
       for (const pattern of stakingPatterns) {
-        const matches = snapshotText.match(pattern);
-        if (matches) {
-          defiData.staking.push(...matches.slice(0, 5));
-        }
+        defiData.staking.push(...extractMatchesLimit(snapshotText, pattern, 5));
       }
     }
 
