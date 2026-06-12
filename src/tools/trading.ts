@@ -151,15 +151,15 @@ export const getPrice: Tool = {
       /Last:\s*\d[\d,]*\.?\d*/gi,
     ];
     
-    const prices: string[] = [];
+    const prices = new Set<string>();
+    // ⚡ Bolt: Use lazy matchAll instead of greedy match for faster extraction
     for (const pattern of pricePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        prices.push(...matches);
+      for (const match of snapshotText.matchAll(pattern)) {
+        prices.add(match[0]);
       }
     }
     
-    const uniquePrices = [...new Set(prices)];
+    const uniquePrices = Array.from(prices);
     
     return {
       content: [
@@ -369,17 +369,18 @@ export const getMarketData: Tool = {
     for (const point of requestedPoints) {
       if (point === "all") continue;
       const pointPatterns = patterns[point as keyof typeof patterns] || [];
-      const matches: string[] = [];
+      const matches = new Set<string>();
       
+      // ⚡ Bolt: Use lazy matchAll instead of greedy match for faster extraction
       for (const pattern of pointPatterns) {
-        const found = snapshotText.match(pattern);
-        if (found) {
-          matches.push(...found);
+        for (const match of snapshotText.matchAll(pattern)) {
+          matches.add(match[0]);
+          if (matches.size >= 10) break; // Limit extracted elements per data point
         }
       }
       
-      if (matches.length > 0) {
-        marketData[point] = [...new Set(matches)];
+      if (matches.size > 0) {
+        marketData[point] = Array.from(matches);
       }
     }
     

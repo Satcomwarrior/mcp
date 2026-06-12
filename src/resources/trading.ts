@@ -26,13 +26,24 @@ export const watchlist: Resource = {
     const symbolPattern = /\b[A-Z]{2,5}\b/g;
     const pricePattern = /\$[\d,]+\.?\d*/g;
     
-    const symbols = snapshotText.match(symbolPattern) || [];
-    const prices = snapshotText.match(pricePattern) || [];
+    const symbols = new Set<string>();
+    const prices = new Set<string>();
+
+    // ⚡ Bolt: Use lazy matchAll instead of greedy match for faster extraction
+    for (const match of snapshotText.matchAll(symbolPattern)) {
+      symbols.add(match[0]);
+      if (symbols.size >= 20) break; // Limit to 20 symbols
+    }
+
+    for (const match of snapshotText.matchAll(pricePattern)) {
+      prices.add(match[0]);
+      if (prices.size >= 20) break;
+    }
     
     const watchlistData = {
       timestamp: new Date().toISOString(),
-      symbols: [...new Set(symbols)].slice(0, 20), // Limit to 20 symbols
-      prices: [...new Set(prices)].slice(0, 20),
+      symbols: Array.from(symbols),
+      prices: Array.from(prices),
       source: "current_page",
     };
 
@@ -131,10 +142,15 @@ export const marketSummary: Resource = {
 
     const marketData: Record<string, string[]> = {};
     
+    // ⚡ Bolt: Use lazy matchAll instead of greedy match for faster extraction
     for (const [key, pattern] of Object.entries(marketPatterns)) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        marketData[key] = [...new Set(matches)].slice(0, 10);
+      const matches = new Set<string>();
+      for (const match of snapshotText.matchAll(pattern)) {
+        matches.add(match[0]);
+        if (matches.size >= 10) break;
+      }
+      if (matches.size > 0) {
+        marketData[key] = Array.from(matches);
       }
     }
 
