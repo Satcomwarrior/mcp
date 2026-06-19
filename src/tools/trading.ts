@@ -151,15 +151,16 @@ export const getPrice: Tool = {
       /Last:\s*\d[\d,]*\.?\d*/gi,
     ];
     
-    const prices: string[] = [];
+    const uniquePricesSet = new Set<string>();
     for (const pattern of pricePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        prices.push(...matches);
+      const matchIter = snapshotText.matchAll(new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g'));
+      for (const match of matchIter) {
+        uniquePricesSet.add(match[0]);
+        if (uniquePricesSet.size >= 100) break;
       }
     }
     
-    const uniquePrices = [...new Set(prices)];
+    const uniquePrices = Array.from(uniquePricesSet);
     
     return {
       content: [
