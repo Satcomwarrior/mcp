@@ -153,13 +153,13 @@ export const getPrice: Tool = {
     
     const prices: string[] = [];
     for (const pattern of pricePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        prices.push(...matches);
+      const globalPattern = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
+      for (const match of snapshotText.matchAll(globalPattern)) {
+        prices.push(match[0]);
       }
     }
     
-    const uniquePrices = [...new Set(prices)];
+    const uniquePrices = Array.from(new Set(prices));
     
     return {
       content: [
@@ -372,14 +372,14 @@ export const getMarketData: Tool = {
       const matches: string[] = [];
       
       for (const pattern of pointPatterns) {
-        const found = snapshotText.match(pattern);
-        if (found) {
-          matches.push(...found);
+        const globalPattern = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
+        for (const match of snapshotText.matchAll(globalPattern)) {
+          matches.push(match[0]);
         }
       }
       
       if (matches.length > 0) {
-        marketData[point] = [...new Set(matches)];
+        marketData[point] = Array.from(new Set(matches));
       }
     }
     
