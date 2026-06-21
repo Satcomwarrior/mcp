@@ -174,32 +174,41 @@ export const getEthBalance: Tool = {
       /USD.*?[\d,]+\.?\d*/gi,
     ];
 
-    const balances: string[] = [];
-    const usdValues: string[] = [];
+    const balances = new Set<string>();
+    const usdValues = new Set<string>();
 
     for (const pattern of balancePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        balances.push(...matches);
+      const safePattern = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
+      for (const match of snapshotText.matchAll(safePattern)) {
+        balances.add(match[0]);
+        if (balances.size >= 10) break;
       }
     }
 
     if (includeTokens) {
       // Look for ERC-20 token balances
       const tokenPattern = /(\d+\.?\d*)\s*([A-Z]{2,10})\b/g;
-      const tokens = snapshotText.match(tokenPattern) || [];
-      balances.push(...tokens.filter(t => !t.includes('ETH')));
-    }
-
-    for (const pattern of usdPatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        usdValues.push(...matches.slice(0, 3)); // Limit to first 3 USD values
+      const safePattern = new RegExp(tokenPattern.source, tokenPattern.flags.includes('g') ? tokenPattern.flags : tokenPattern.flags + 'g');
+      for (const match of snapshotText.matchAll(safePattern)) {
+        if (!match[0].includes('ETH')) {
+          balances.add(match[0]);
+          if (balances.size >= 10) break;
+        }
       }
     }
 
-    const uniqueBalances = [...new Set(balances)].slice(0, 10);
-    const uniqueUsdValues = [...new Set(usdValues)].slice(0, 5);
+    for (const pattern of usdPatterns) {
+      let count = 0;
+      const safePattern = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
+      for (const match of snapshotText.matchAll(safePattern)) {
+        usdValues.add(match[0]);
+        count++;
+        if (count >= 3) break;
+      }
+    }
+
+    const uniqueBalances = Array.from(balances).slice(0, 10);
+    const uniqueUsdValues = Array.from(usdValues).slice(0, 5);
 
     let result = "ETH Balance Information:\n";
     if (uniqueBalances.length > 0) {
@@ -265,23 +274,32 @@ export const getEthPairData: Tool = {
     ];
 
     for (const pattern of pricePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        pairData.price.push(...matches.slice(0, 3));
+      let count = 0;
+      const safePattern = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
+      for (const match of snapshotText.matchAll(safePattern)) {
+        pairData.price.push(match[0]);
+        count++;
+        if (count >= 3) break;
       }
     }
 
     for (const pattern of volumePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        pairData.volume.push(...matches.slice(0, 3));
+      let count = 0;
+      const safePattern = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
+      for (const match of snapshotText.matchAll(safePattern)) {
+        pairData.volume.push(match[0]);
+        count++;
+        if (count >= 3) break;
       }
     }
 
     for (const pattern of changePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        pairData.change.push(...matches.slice(0, 3));
+      let count = 0;
+      const safePattern = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
+      for (const match of snapshotText.matchAll(safePattern)) {
+        pairData.change.push(match[0]);
+        count++;
+        if (count >= 3) break;
       }
     }
 
@@ -353,27 +371,36 @@ export const getDeFiData: Tool = {
 
     if (dataType === "apy" || dataType === "all") {
       for (const pattern of apyPatterns) {
-        const matches = snapshotText.match(pattern);
-        if (matches) {
-          defiData.apy.push(...matches.slice(0, 5));
+        let count = 0;
+        const safePattern = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
+        for (const match of snapshotText.matchAll(safePattern)) {
+          defiData.apy.push(match[0]);
+          count++;
+          if (count >= 5) break;
         }
       }
     }
 
     if (dataType === "liquidity" || dataType === "all") {
       for (const pattern of liquidityPatterns) {
-        const matches = snapshotText.match(pattern);
-        if (matches) {
-          defiData.liquidity.push(...matches.slice(0, 5));
+        let count = 0;
+        const safePattern = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
+        for (const match of snapshotText.matchAll(safePattern)) {
+          defiData.liquidity.push(match[0]);
+          count++;
+          if (count >= 5) break;
         }
       }
     }
 
     if (dataType === "staking" || dataType === "all") {
       for (const pattern of stakingPatterns) {
-        const matches = snapshotText.match(pattern);
-        if (matches) {
-          defiData.staking.push(...matches.slice(0, 5));
+        let count = 0;
+        const safePattern = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
+        for (const match of snapshotText.matchAll(safePattern)) {
+          defiData.staking.push(match[0]);
+          count++;
+          if (count >= 5) break;
         }
       }
     }
@@ -443,28 +470,37 @@ export const monitorEthTransaction: Tool = {
     let confirmations = "0";
     let gasUsed = "N/A";
 
+    let foundStatus = false;
     for (const pattern of statusPatterns) {
-      const match = snapshotText.match(pattern);
-      if (match) {
+      const safePattern = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
+      for (const match of snapshotText.matchAll(safePattern)) {
         status = match[0];
+        foundStatus = true;
         break;
       }
+      if (foundStatus) break;
     }
 
+    let foundConfirmations = false;
     for (const pattern of confirmationPatterns) {
-      const match = snapshotText.match(pattern);
-      if (match) {
+      const safePattern = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
+      for (const match of snapshotText.matchAll(safePattern)) {
         confirmations = match[0];
+        foundConfirmations = true;
         break;
       }
+      if (foundConfirmations) break;
     }
 
+    let foundGas = false;
     for (const pattern of gasPatterns) {
-      const match = snapshotText.match(pattern);
-      if (match) {
+      const safePattern = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
+      for (const match of snapshotText.matchAll(safePattern)) {
         gasUsed = match[0];
+        foundGas = true;
         break;
       }
+      if (foundGas) break;
     }
 
     const result = [
