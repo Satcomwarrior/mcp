@@ -20,7 +20,51 @@ export const navigate: ToolFactory = (snapshot) => ({
   },
   handle: async (context, params) => {
     const { url } = NavigateTool.shape.arguments.parse(params);
-    await context.sendSocketMessage("browser_navigate", { url });
+    let targetUrl = url;
+
+    // Prevent prepending http:// to already dangerous schemes
+    if (/^(?:javascript|file|data|about|chrome|vbscript):/i.test(targetUrl)) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Navigation blocked: Dangerous URL scheme in "${url}"`,
+          },
+        ],
+        isError: true,
+      };
+    }
+
+    if (!targetUrl.includes("://")) {
+      targetUrl = `http://${targetUrl}`;
+    }
+
+    try {
+      const parsedUrl = new URL(targetUrl);
+      if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `Navigation blocked: Invalid protocol "${parsedUrl.protocol}"`,
+            },
+          ],
+          isError: true,
+        };
+      }
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Navigation blocked: Invalid URL format`,
+          },
+        ],
+        isError: true,
+      };
+    }
+
+    await context.sendSocketMessage("browser_navigate", { url: targetUrl });
     if (snapshot) {
       return captureAriaSnapshot(context);
     }
@@ -28,7 +72,7 @@ export const navigate: ToolFactory = (snapshot) => ({
       content: [
         {
           type: "text",
-          text: `Navigated to ${url}`,
+          text: `Navigated to ${targetUrl}`,
         },
       ],
     };
