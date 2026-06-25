@@ -1,0 +1,89 @@
+{
+  "schema_version": "1.0.0",
+  "library_name": "Code Collective",
+  "purpose": "Persistent reusable code and algorithm database accessible through MCP.",
+  "created_at": "2026-06-25T00:00:00.000Z",
+  "updated_at": "2026-06-25T00:00:00.000Z",
+  "entries": [
+    {
+      "id": "pod-automation-legacy-semper-high",
+      "title": "POD automation backend pattern from legacy Semper High repo",
+      "summary": "Reusable backend workflow pattern for print-on-demand automation: product templates, asset generation, SQLite persistence, Shopify publishing, Printful order routing, webhook verification, job tracking, and notifications.",
+      "language": "python",
+      "kind": "integration-pattern",
+      "status": "candidate",
+      "trust_level": "reviewed-not-tested",
+      "tags": ["pod", "shopify", "printful", "flask", "sqlite", "webhook", "product-publishing", "order-fulfillment", "legacy-semper-high"],
+      "source": {
+        "type": "github-repo",
+        "repository": "Satcomwarrior/semper-high-backend",
+        "files": ["pod_all_in_one.py", "requirements.txt", "render.yaml"],
+        "notes": "Useful code pattern. Repo had exposed secrets and must not be treated as safe production source until tokens are revoked and history is handled. Semper High naming must be replaced before reuse."
+      },
+      "interfaces": {
+        "routes": ["GET /health", "POST /api/product-templates", "GET /api/product-templates", "POST /api/products/publish", "GET /api/jobs", "POST /webhooks/shopify/orders-create", "POST /webhooks/printful"],
+        "classes": ["Settings", "Database", "JobQueue", "LocalAssetStorage", "ImageService", "ShopifyClient", "PrintfulClient"]
+      },
+      "reuse_notes": [
+        "Use as a reference pattern, not direct production code.",
+        "Settings pattern is reusable because it reads runtime values from environment variables.",
+        "SQLite schema is useful for product templates, variants, orders, jobs, events, and notifications.",
+        "Webhook HMAC verification pattern is reusable after validating provider-specific header names.",
+        "Order-to-fulfillment mapping must be tested with real provider payloads."
+      ],
+      "validation": [
+        {
+          "date": "2026-06-25",
+          "result": "manual-review",
+          "notes": "Reviewed as useful candidate. Not run. Not production-ready."
+        }
+      ],
+      "risks": [
+        "Legacy repo exposed a Shopify admin token in committed files/history; token must be revoked.",
+        "External provider APIs may have changed.",
+        "Single-file Flask implementation should be modularized before larger production use."
+      ],
+      "created_at": "2026-06-25T00:00:00.000Z",
+      "updated_at": "2026-06-25T00:00:00.000Z"
+    },
+    {
+      "id": "storefront-cart-checkout-pattern",
+      "title": "Storefront cart and checkout pattern from canonical store work",
+      "summary": "Reusable frontend/backend checkout pattern: React cart context, product detail variant validation, cart drawer checkout trigger, backend checkout session creation, and payment webhook handling.",
+      "language": "typescript",
+      "kind": "storefront-pattern",
+      "status": "candidate",
+      "trust_level": "reviewed-not-tested",
+      "tags": ["storefront", "cart", "checkout", "react", "trpc", "typescript", "payment-webhook"],
+      "source": {
+        "type": "github-repo",
+        "repository": "Satcomwarrior/mudd-monkies-store",
+        "branch": "fix/store-conflicts-and-consolidation",
+        "files": ["client/src/contexts/CartContext.tsx", "client/src/components/CartDrawer.tsx", "client/src/pages/ProductDetail.tsx", "server/routers.ts", "server/stripe.ts"],
+        "notes": "Captured from storefront consolidation work. Storefront remains a source reference only; this database is standalone."
+      },
+      "interfaces": {
+        "frontend": ["CartContext", "CartDrawer", "ProductDetail variant selection"],
+        "backend": ["checkout.createSession", "payment webhook handler"]
+      },
+      "reuse_notes": [
+        "Use product detail page for add-to-cart when variant selection is required.",
+        "Do not call checkout production-ready until test-mode checkout and webhook events are verified.",
+        "Keep this as an implementation pattern rather than storefront-specific code."
+      ],
+      "validation": [
+        {
+          "date": "2026-06-25",
+          "result": "manual-review",
+          "notes": "Reviewed as useful candidate. No CI validation found yet."
+        }
+      ],
+      "risks": [
+        "Payment provider configuration and webhook handling still need test-mode proof.",
+        "Original storefront branch had unresolved deploy readiness before validation workflow."
+      ],
+      "created_at": "2026-06-25T00:00:00.000Z",
+      "updated_at": "2026-06-25T00:00:00.000Z"
+    }
+  ]
+}
