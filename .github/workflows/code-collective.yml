@@ -1,0 +1,45 @@
+name: Code Collective
+
+on:
+  pull_request:
+    paths:
+      - 'code-collective/**'
+      - '.github/workflows/code-collective.yml'
+  push:
+    branches:
+      - main
+      - code-library-collective
+    paths:
+      - 'code-collective/**'
+      - '.github/workflows/code-collective.yml'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: code-collective
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install
+        run: npm install
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify database JSON
+        run: node -e "JSON.parse(require('fs').readFileSync('library/db.json','utf8')); console.log('db ok')"
+
+      - name: Verify MCP tool list
+        run: |
+          printf '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}\n{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}\n' | timeout 5s node dist/collective.js stdio | tee /tmp/code-collective-output.txt
+          grep -q 'search_code' /tmp/code-collective-output.txt

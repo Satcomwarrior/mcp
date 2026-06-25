@@ -1,0 +1,27 @@
+{
+  "name": "code-collective-mcp",
+  "version": "0.1.0",
+  "description": "Standalone MCP-accessible reusable code and algorithm library.",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "code-collective-mcp": "dist/collective.js"
+  },
+  "scripts": {
+    "dev:stdio": "tsx src/collective.ts stdio",
+    "dev:http": "tsx src/collective.ts http",
+    "build": "tsc -p tsconfig.build.json",
+    "start:stdio": "node dist/collective.js stdio",
+    "start:http": "node dist/collective.js http",
+    "test:mcp": "npm run build"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsx": "^4.19.1",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
