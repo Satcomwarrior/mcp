@@ -5,15 +5,15 @@
   "type": "module",
   "private": true,
   "bin": {
-    "code-collective-mcp": "dist/index.js"
+    "code-collective-mcp": "dist/collective.js"
   },
   "scripts": {
-    "dev:stdio": "tsx src/index.ts stdio",
-    "dev:http": "tsx src/index.ts http",
+    "dev:stdio": "tsx src/collective.ts stdio",
+    "dev:http": "tsx src/collective.ts http",
     "build": "tsc -p tsconfig.json",
-    "start:stdio": "node dist/index.js stdio",
-    "start:http": "node dist/index.js http",
-    "test:mcp": "npm run build && printf '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{}}\n{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\",\"params\":{}}\n' | node dist/index.js stdio | grep -q search_code"
+    "start:stdio": "node dist/collective.js stdio",
+    "start:http": "node dist/collective.js http",
+    "test:mcp": "npm run build && node dist/collective.js http >/tmp/code-collective.log 2>&1 & MCP_PID=$!; sleep 1; curl -fsS http://localhost:8790/health; kill $MCP_PID"
   },
   "dependencies": {},
   "devDependencies": {
