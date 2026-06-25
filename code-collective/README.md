@@ -71,7 +71,7 @@ MCP client config:
   "mcpServers": {
     "code-collective": {
       "command": "node",
-      "args": ["/absolute/path/to/code-collective/dist/index.js", "stdio"]
+      "args": ["/absolute/path/to/code-collective/dist/collective.js", "stdio"]
     }
   }
 }
