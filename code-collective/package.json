@@ -1,0 +1,27 @@
+{
+  "name": "code-collective-mcp",
+  "version": "0.1.0",
+  "description": "Standalone MCP-accessible reusable code and algorithm library.",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "code-collective-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "dev:stdio": "tsx src/index.ts stdio",
+    "dev:http": "tsx src/index.ts http",
+    "build": "tsc -p tsconfig.json",
+    "start:stdio": "node dist/index.js stdio",
+    "start:http": "node dist/index.js http",
+    "test:mcp": "npm run build && printf '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{}}\n{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\",\"params\":{}}\n' | node dist/index.js stdio | grep -q search_code"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "tsx": "^4.19.1",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
