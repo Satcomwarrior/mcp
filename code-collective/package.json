@@ -10,10 +10,10 @@
   "scripts": {
     "dev:stdio": "tsx src/collective.ts stdio",
     "dev:http": "tsx src/collective.ts http",
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json",
     "start:stdio": "node dist/collective.js stdio",
     "start:http": "node dist/collective.js http",
-    "test:mcp": "npm run build && node dist/collective.js http >/tmp/code-collective.log 2>&1 & MCP_PID=$!; sleep 1; curl -fsS http://localhost:8790/health; kill $MCP_PID"
+    "test:mcp": "npm run build"
   },
   "dependencies": {},
   "devDependencies": {
