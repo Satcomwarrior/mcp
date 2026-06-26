@@ -20,7 +20,34 @@ export const navigate: ToolFactory = (snapshot) => ({
   },
   handle: async (context, params) => {
     const { url } = NavigateTool.shape.arguments.parse(params);
-    await context.sendSocketMessage("browser_navigate", { url });
+
+    // Security: Strict URL protocol validation to prevent LFI and XSS
+    let validatedUrl = url;
+    try {
+      if (!validatedUrl.includes("://")) {
+        if (/^(javascript|file|data|about):/i.test(validatedUrl)) {
+          throw new Error("Dangerous URI scheme detected");
+        }
+        validatedUrl = `http://${validatedUrl}`;
+      }
+      const parsedUrl = new URL(validatedUrl);
+      if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+        throw new Error("Only http: and https: protocols are allowed");
+      }
+      validatedUrl = parsedUrl.toString();
+    } catch (error) {
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Security validation failed: ${error instanceof Error ? error.message : "Invalid URL"}`
+          }
+        ],
+        isError: true,
+      };
+    }
+
+    await context.sendSocketMessage("browser_navigate", { url: validatedUrl });
     if (snapshot) {
       return captureAriaSnapshot(context);
     }
@@ -28,7 +55,7 @@ export const navigate: ToolFactory = (snapshot) => ({
       content: [
         {
           type: "text",
-          text: `Navigated to ${url}`,
+          text: `Navigated to ${validatedUrl}`,
         },
       ],
     };
