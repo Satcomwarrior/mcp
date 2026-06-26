@@ -4,3 +4,6 @@
 ## 2026-02-23 - Intl.NumberFormat Caching
 **Learning:** Instantiating `Intl.NumberFormat` repeatedly in a loop is a massive performance bottleneck. In this codebase's `src/utils/trading.ts` utility, formatting 10,000 prices dropped from ~4166ms to ~60ms (~69x speedup) simply by caching the formatter instance using a `Map` keyed by the currency and decimal configuration.
 **Action:** Always look for internal JavaScript globalization or formatting objects (like `Intl.NumberFormat`, `Intl.DateTimeFormat`) being created inside functions that are called frequently or in loops. Cache them aggressively using appropriate unique keys.
+## 2026-02-23 - RegExp Array Allocation Crash
+**Learning:** Using `array.push(...string.match(/pattern/g))` on massive strings (like full DOM snapshots) can trigger `RangeError: Maximum call stack size exceeded` because the regex engine evaluates all matches at once, creating a massive temporary array that gets spread into the call stack.
+**Action:** Use lazy `matchAll()` iterators with a `for...of` loop instead. Collecting directly into a `Set` and breaking the loop when limits are reached provides massive speedups (60x+) by avoiding full-string evaluation.
