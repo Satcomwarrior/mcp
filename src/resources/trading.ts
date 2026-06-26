@@ -31,8 +31,8 @@ export const watchlist: Resource = {
     
     const watchlistData = {
       timestamp: new Date().toISOString(),
-      symbols: [...new Set(symbols)].slice(0, 20), // Limit to 20 symbols
-      prices: [...new Set(prices)].slice(0, 20),
+      symbols: Array.from(new Set(symbols)).slice(0, 20), // Limit to 20 symbols
+      prices: Array.from(new Set(prices)).slice(0, 20),
       source: "current_page",
     };
 
@@ -132,9 +132,14 @@ export const marketSummary: Resource = {
     const marketData: Record<string, string[]> = {};
     
     for (const [key, pattern] of Object.entries(marketPatterns)) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        marketData[key] = [...new Set(matches)].slice(0, 10);
+      const globalPattern = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
+      const matchesSet = new Set<string>();
+      for (const match of snapshotText.matchAll(globalPattern)) {
+        matchesSet.add(match[0]);
+        if (matchesSet.size >= 10) break;
+      }
+      if (matchesSet.size > 0) {
+        marketData[key] = Array.from(matchesSet);
       }
     }
 
