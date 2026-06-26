@@ -19,8 +19,36 @@ export const navigate: ToolFactory = (snapshot) => ({
     inputSchema: zodToJsonSchema(NavigateTool.shape.arguments),
   },
   handle: async (context, params) => {
-    const { url } = NavigateTool.shape.arguments.parse(params);
-    await context.sendSocketMessage("browser_navigate", { url });
+    let { url } = NavigateTool.shape.arguments.parse(params);
+
+    // Explicit URL Validation Logic
+    const dangerousSchemes = ['javascript:', 'file:', 'data:', 'about:'];
+    const startsWithDangerous = dangerousSchemes.some((scheme) =>
+      url.toLowerCase().startsWith(scheme)
+    );
+
+    if (!url.includes('://') && !startsWithDangerous) {
+      url = `http://${url}`;
+    }
+
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(url);
+    } catch (error) {
+      return {
+        isError: true,
+        content: [{ type: "text", text: `Validation Error: Invalid URL provided` }],
+      };
+    }
+
+    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+      return {
+        isError: true,
+        content: [{ type: "text", text: `Security Error: Navigation to restricted protocol '${parsedUrl.protocol}' is not allowed.` }],
+      };
+    }
+
+    await context.sendSocketMessage("browser_navigate", { url: parsedUrl.toString() });
     if (snapshot) {
       return captureAriaSnapshot(context);
     }
@@ -28,7 +56,7 @@ export const navigate: ToolFactory = (snapshot) => ({
       content: [
         {
           type: "text",
-          text: `Navigated to ${url}`,
+          text: `Navigated to ${parsedUrl.toString()}`,
         },
       ],
     };
