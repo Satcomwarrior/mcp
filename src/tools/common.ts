@@ -20,7 +20,36 @@ export const navigate: ToolFactory = (snapshot) => ({
   },
   handle: async (context, params) => {
     const { url } = NavigateTool.shape.arguments.parse(params);
-    await context.sendSocketMessage("browser_navigate", { url });
+
+    let finalUrl = url;
+    const dangerousPrefixes = ['javascript:', 'file:', 'data:', 'about:', 'chrome:'];
+    if (dangerousPrefixes.some(prefix => finalUrl.toLowerCase().startsWith(prefix))) {
+      return {
+        isError: true,
+        content: [{ type: "text", text: `Error: Dangerous URL protocol is not allowed` }],
+      };
+    }
+
+    if (!finalUrl.includes('://')) {
+      finalUrl = `http://${finalUrl}`;
+    }
+
+    try {
+      const parsedUrl = new URL(finalUrl);
+      if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+        return {
+          isError: true,
+          content: [{ type: "text", text: `Error: Only http: and https: protocols are permitted` }],
+        };
+      }
+    } catch (error) {
+      return {
+        isError: true,
+        content: [{ type: "text", text: `Error: Invalid URL` }],
+      };
+    }
+
+    await context.sendSocketMessage("browser_navigate", { url: finalUrl });
     if (snapshot) {
       return captureAriaSnapshot(context);
     }
@@ -28,7 +57,7 @@ export const navigate: ToolFactory = (snapshot) => ({
       content: [
         {
           type: "text",
-          text: `Navigated to ${url}`,
+          text: `Navigated to ${finalUrl}`,
         },
       ],
     };
