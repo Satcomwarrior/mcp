@@ -20,7 +20,32 @@ export const navigate: ToolFactory = (snapshot) => ({
   },
   handle: async (context, params) => {
     const { url } = NavigateTool.shape.arguments.parse(params);
-    await context.sendSocketMessage("browser_navigate", { url });
+
+    // Security: Validate URL protocol to prevent LFI (file://) or XSS (javascript:)
+    let processedUrl = url;
+    try {
+      if (!processedUrl.includes("://")) {
+        processedUrl = `http://${processedUrl}`;
+      }
+      const parsedUrl = new URL(processedUrl);
+      if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+        return {
+          content: [
+            { type: "text", text: `Invalid protocol: ${parsedUrl.protocol}. Only http and https are allowed.` }
+          ],
+          isError: true
+        };
+      }
+    } catch (e) {
+      return {
+        content: [
+          { type: "text", text: `Invalid URL format provided.` }
+        ],
+        isError: true
+      };
+    }
+
+    await context.sendSocketMessage("browser_navigate", { url: processedUrl });
     if (snapshot) {
       return captureAriaSnapshot(context);
     }
