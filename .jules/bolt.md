@@ -4,3 +4,7 @@
 ## 2026-02-23 - Intl.NumberFormat Caching
 **Learning:** Instantiating `Intl.NumberFormat` repeatedly in a loop is a massive performance bottleneck. In this codebase's `src/utils/trading.ts` utility, formatting 10,000 prices dropped from ~4166ms to ~60ms (~69x speedup) simply by caching the formatter instance using a `Map` keyed by the currency and decimal configuration.
 **Action:** Always look for internal JavaScript globalization or formatting objects (like `Intl.NumberFormat`, `Intl.DateTimeFormat`) being created inside functions that are called frequently or in loops. Cache them aggressively using appropriate unique keys.
+
+## 2024-05-24 - Do not commit dummy test data files
+**Learning:** Even when instructed to "measure" the impact of an optimization, creating and committing multi-megabyte mock data files (like a 5.5MB `large_snapshot.txt`) and ad-hoc benchmarking `.cjs` scripts bloats the Git history and pollutes the repository.
+**Action:** Always delete temporary dummy files, test data dumps, and ad-hoc benchmark scripts (`rm test_*.cjs large_*.txt`) before requesting a code review or submitting a PR.
