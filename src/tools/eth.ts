@@ -192,9 +192,11 @@ export const getEthBalance: Tool = {
     }
 
     for (const pattern of usdPatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        usdValues.push(...matches.slice(0, 3)); // Limit to first 3 USD values
+      let count = 0;
+      for (const match of snapshotText.matchAll(pattern)) {
+        usdValues.push(match[0]);
+        count++;
+        if (count >= 3) break; // Limit to first 3 USD values
       }
     }
 
@@ -265,23 +267,29 @@ export const getEthPairData: Tool = {
     ];
 
     for (const pattern of pricePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        pairData.price.push(...matches.slice(0, 3));
+      let count = 0;
+      for (const match of snapshotText.matchAll(pattern)) {
+        pairData.price.push(match[0]);
+        count++;
+        if (count >= 3) break;
       }
     }
 
     for (const pattern of volumePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        pairData.volume.push(...matches.slice(0, 3));
+      let count = 0;
+      for (const match of snapshotText.matchAll(pattern)) {
+        pairData.volume.push(match[0]);
+        count++;
+        if (count >= 3) break;
       }
     }
 
     for (const pattern of changePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        pairData.change.push(...matches.slice(0, 3));
+      let count = 0;
+      for (const match of snapshotText.matchAll(pattern)) {
+        pairData.change.push(match[0]);
+        count++;
+        if (count >= 3) break;
       }
     }
 
@@ -353,27 +361,33 @@ export const getDeFiData: Tool = {
 
     if (dataType === "apy" || dataType === "all") {
       for (const pattern of apyPatterns) {
-        const matches = snapshotText.match(pattern);
-        if (matches) {
-          defiData.apy.push(...matches.slice(0, 5));
+        let count = 0;
+        for (const match of snapshotText.matchAll(pattern)) {
+          defiData.apy.push(match[0]);
+          count++;
+          if (count >= 5) break;
         }
       }
     }
 
     if (dataType === "liquidity" || dataType === "all") {
       for (const pattern of liquidityPatterns) {
-        const matches = snapshotText.match(pattern);
-        if (matches) {
-          defiData.liquidity.push(...matches.slice(0, 5));
+        let count = 0;
+        for (const match of snapshotText.matchAll(pattern)) {
+          defiData.liquidity.push(match[0]);
+          count++;
+          if (count >= 5) break;
         }
       }
     }
 
     if (dataType === "staking" || dataType === "all") {
       for (const pattern of stakingPatterns) {
-        const matches = snapshotText.match(pattern);
-        if (matches) {
-          defiData.staking.push(...matches.slice(0, 5));
+        let count = 0;
+        for (const match of snapshotText.matchAll(pattern)) {
+          defiData.staking.push(match[0]);
+          count++;
+          if (count >= 5) break;
         }
       }
     }
