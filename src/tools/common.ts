@@ -20,7 +20,46 @@ export const navigate: ToolFactory = (snapshot) => ({
   },
   handle: async (context, params) => {
     const { url } = NavigateTool.shape.arguments.parse(params);
-    await context.sendSocketMessage("browser_navigate", { url });
+
+    let urlToNavigate = url.trim();
+    const dangerousPrefixes = ["javascript:", "file:", "data:", "about:"];
+    if (dangerousPrefixes.some((prefix) => urlToNavigate.toLowerCase().startsWith(prefix))) {
+      return {
+        isError: true,
+        content: [
+          {
+            type: "text",
+            text: "Security Error: Dangerous protocol detected. Only http:// and https:// are allowed.",
+          },
+        ],
+      };
+    }
+
+    if (!urlToNavigate.includes("://")) {
+      urlToNavigate = `http://${urlToNavigate}`;
+    }
+
+    try {
+      const parsedUrl = new URL(urlToNavigate);
+      if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: "Security Error: Only http:// and https:// protocols are allowed.",
+            },
+          ],
+        };
+      }
+    } catch (e) {
+      return {
+        isError: true,
+        content: [{ type: "text", text: `Invalid URL: ${String(e)}` }],
+      };
+    }
+
+    await context.sendSocketMessage("browser_navigate", { url: urlToNavigate });
     if (snapshot) {
       return captureAriaSnapshot(context);
     }
@@ -28,7 +67,7 @@ export const navigate: ToolFactory = (snapshot) => ({
       content: [
         {
           type: "text",
-          text: `Navigated to ${url}`,
+          text: `Navigated to ${urlToNavigate}`,
         },
       ],
     };
