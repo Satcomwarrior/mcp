@@ -264,24 +264,33 @@ export const getEthPairData: Tool = {
       /change.*?([+-]?\d+\.?\d*%)/gi,
     ];
 
+    // ⚡ Bolt Optimization: Use lazy matchAll() iteration with early break instead of eager match()
+    // This avoids processing the entire potentially large snapshot string and allocating massive arrays
+    // when we only need the first 3 matches. We clone the RegExp to safely enforce the required /g flag.
     for (const pattern of pricePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        pairData.price.push(...matches.slice(0, 3));
+      const safePattern = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
+      let count = 0;
+      for (const match of snapshotText.matchAll(safePattern)) {
+        pairData.price.push(match[0]);
+        if (++count >= 3) break;
       }
     }
 
     for (const pattern of volumePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        pairData.volume.push(...matches.slice(0, 3));
+      const safePattern = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
+      let count = 0;
+      for (const match of snapshotText.matchAll(safePattern)) {
+        pairData.volume.push(match[0]);
+        if (++count >= 3) break;
       }
     }
 
     for (const pattern of changePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        pairData.change.push(...matches.slice(0, 3));
+      const safePattern = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
+      let count = 0;
+      for (const match of snapshotText.matchAll(safePattern)) {
+        pairData.change.push(match[0]);
+        if (++count >= 3) break;
       }
     }
 
