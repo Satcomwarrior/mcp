@@ -19,7 +19,40 @@ export const navigate: ToolFactory = (snapshot) => ({
     inputSchema: zodToJsonSchema(NavigateTool.shape.arguments),
   },
   handle: async (context, params) => {
-    const { url } = NavigateTool.shape.arguments.parse(params);
+    let { url } = NavigateTool.shape.arguments.parse(params);
+
+    // Security enhancement: Validate URL scheme to prevent XSS (javascript:) or LFI (file:)
+    const lowerUrl = url.trim().toLowerCase();
+    const dangerousPrefixes = ['javascript:', 'file:', 'data:', 'about:', 'chrome:', 'edge:'];
+    if (dangerousPrefixes.some(prefix => lowerUrl.startsWith(prefix))) {
+      return {
+        isError: true,
+        content: [
+          {
+            type: "text",
+            text: "Dangerous URL scheme blocked for security reasons.",
+          },
+        ],
+      };
+    }
+    if (!url.includes("://") && !url.toLowerCase().startsWith("http")) {
+      url = `http://${url}`;
+    }
+    try {
+      const parsedUrl = new URL(url);
+      if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+        return {
+          isError: true,
+          content: [{ type: "text", text: "Only HTTP and HTTPS protocols are allowed." }],
+        };
+      }
+    } catch {
+      return {
+        isError: true,
+        content: [{ type: "text", text: "Invalid URL format." }],
+      };
+    }
+
     await context.sendSocketMessage("browser_navigate", { url });
     if (snapshot) {
       return captureAriaSnapshot(context);
