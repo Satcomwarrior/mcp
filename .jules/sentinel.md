@@ -11,3 +11,8 @@
 **Vulnerability:** Node.js `net.createServer()` and `WebSocketServer` bind to all network interfaces (`::` or `0.0.0.0`) by default if no host is specified, exposing local automation endpoints to external networks.
 **Learning:** Internal tools relying on default Node.js host binding can become remote code execution vectors.
 **Prevention:** Always explicitly provide the `host: '127.0.0.1'` configuration parameter when instantiating local network servers.
+## 2024-05-14 - [Critical] Unvalidated Navigation URL leading to LFI and XSS
+
+**Vulnerability:** The `navigate` tool in the MCP server accepted unsanitized URL strings and passed them directly to the browser for navigation. This allowed an attacker or compromised LLM context to execute arbitrary code via `javascript:` URIs (XSS) or read local system files via `file:` URIs (Local File Inclusion).
+**Learning:** Headless browser automation interfaces must strictly enforce protocol allowlists for target URLs. Implicitly assuming URLs are standard web links (`http/https`) exposes critical browser-level vulnerabilities when untrusted inputs are processed.
+**Prevention:** Implemented strict URL normalization and protocol validation. The tool explicitly blocks dangerous schemes before appending default protocols and verifies that the fully parsed URL uses only the `http:` or `https:` protocol.

@@ -20,7 +20,47 @@ export const navigate: ToolFactory = (snapshot) => ({
   },
   handle: async (context, params) => {
     const { url } = NavigateTool.shape.arguments.parse(params);
-    await context.sendSocketMessage("browser_navigate", { url });
+
+    // Validate and normalize URL to prevent SSRF / LFI / XSS
+    let finalUrl = url.trim();
+    const lowerUrl = finalUrl.toLowerCase();
+
+    // Explicitly block dangerous schemes before applying default http://
+    if (
+      lowerUrl.startsWith("javascript:") ||
+      lowerUrl.startsWith("file:") ||
+      lowerUrl.startsWith("data:") ||
+      lowerUrl.startsWith("about:") ||
+      lowerUrl.startsWith("chrome:") ||
+      lowerUrl.startsWith("edge:")
+    ) {
+      return {
+        content: [{ type: "text", text: "Navigation to this protocol is blocked for security reasons." }],
+        isError: true,
+      };
+    }
+
+    if (!finalUrl.includes("://")) {
+      finalUrl = "http://" + finalUrl;
+    }
+
+    try {
+      const parsedUrl = new URL(finalUrl);
+      if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+        return {
+          content: [{ type: "text", text: "Only http: and https: protocols are allowed." }],
+          isError: true,
+        };
+      }
+      finalUrl = parsedUrl.href;
+    } catch (error) {
+      return {
+        content: [{ type: "text", text: "Invalid URL provided." }],
+        isError: true,
+      };
+    }
+
+    await context.sendSocketMessage("browser_navigate", { url: finalUrl });
     if (snapshot) {
       return captureAriaSnapshot(context);
     }
