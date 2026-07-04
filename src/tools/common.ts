@@ -20,7 +20,50 @@ export const navigate: ToolFactory = (snapshot) => ({
   },
   handle: async (context, params) => {
     const { url } = NavigateTool.shape.arguments.parse(params);
-    await context.sendSocketMessage("browser_navigate", { url });
+
+    // Validate and sanitize the URL
+    const trimmedUrl = url.trim();
+    const lowerUrl = trimmedUrl.toLowerCase();
+
+    if (
+      lowerUrl.startsWith("javascript:") ||
+      lowerUrl.startsWith("file:") ||
+      lowerUrl.startsWith("data:") ||
+      lowerUrl.startsWith("about:") ||
+      lowerUrl.startsWith("chrome:") ||
+      lowerUrl.startsWith("edge:")
+    ) {
+      return {
+        isError: true,
+        content: [{ type: "text", text: "Error: Blocked dangerous URL protocol." }],
+      };
+    }
+
+    let finalUrl = trimmedUrl;
+    try {
+      const hasScheme = /^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(trimmedUrl);
+      if (!hasScheme) {
+        finalUrl = `http://${trimmedUrl}`;
+      }
+
+      const parsedUrl = new URL(finalUrl);
+
+      if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+        if (hasScheme && !trimmedUrl.includes("://") && /^[a-zA-Z0-9.-]+:\d+/.test(trimmedUrl)) {
+          finalUrl = `http://${trimmedUrl}`;
+          const reParsed = new URL(finalUrl);
+          if (reParsed.protocol !== "http:" && reParsed.protocol !== "https:") {
+            return { isError: true, content: [{ type: "text", text: `Error: Invalid protocol ${reParsed.protocol}` }] };
+          }
+        } else {
+          return { isError: true, content: [{ type: "text", text: `Error: Invalid protocol ${parsedUrl.protocol}` }] };
+        }
+      }
+    } catch (e) {
+      return { isError: true, content: [{ type: "text", text: "Error: Invalid URL format." }] };
+    }
+
+    await context.sendSocketMessage("browser_navigate", { url: finalUrl });
     if (snapshot) {
       return captureAriaSnapshot(context);
     }
@@ -28,7 +71,7 @@ export const navigate: ToolFactory = (snapshot) => ({
       content: [
         {
           type: "text",
-          text: `Navigated to ${url}`,
+          text: `Navigated to ${finalUrl}`,
         },
       ],
     };
