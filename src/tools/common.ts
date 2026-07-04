@@ -20,7 +20,55 @@ export const navigate: ToolFactory = (snapshot) => ({
   },
   handle: async (context, params) => {
     const { url } = NavigateTool.shape.arguments.parse(params);
-    await context.sendSocketMessage("browser_navigate", { url });
+
+    let finalUrl = url.trim();
+    const normalizedUrl = finalUrl.toLowerCase();
+
+    if (
+      normalizedUrl.startsWith("javascript:") ||
+      normalizedUrl.startsWith("file:") ||
+      normalizedUrl.startsWith("data:") ||
+      normalizedUrl.startsWith("about:") ||
+      normalizedUrl.startsWith("chrome:") ||
+      normalizedUrl.startsWith("edge:")
+    ) {
+      return {
+        isError: true,
+        content: [{ type: "text", text: "Navigation to dangerous protocol is blocked for security reasons." }],
+      };
+    }
+
+    if (!finalUrl.match(/^[a-zA-Z][a-zA-Z\d+\-.]*:/)) {
+      finalUrl = `http://${finalUrl}`;
+    }
+
+    let parsedUrl;
+    try {
+      parsedUrl = new URL(finalUrl);
+      if (parsedUrl.protocol === "localhost:") {
+        finalUrl = `http://${finalUrl}`;
+        parsedUrl = new URL(finalUrl);
+      }
+    } catch {
+      try {
+        finalUrl = `http://${finalUrl}`;
+        parsedUrl = new URL(finalUrl);
+      } catch {
+        return {
+          isError: true,
+          content: [{ type: "text", text: "Invalid URL format." }],
+        };
+      }
+    }
+
+    if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+      return {
+        isError: true,
+        content: [{ type: "text", text: "Navigation is blocked. Only http and https protocols are allowed." }],
+      };
+    }
+
+    await context.sendSocketMessage("browser_navigate", { url: finalUrl });
     if (snapshot) {
       return captureAriaSnapshot(context);
     }
