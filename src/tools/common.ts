@@ -20,7 +20,48 @@ export const navigate: ToolFactory = (snapshot) => ({
   },
   handle: async (context, params) => {
     const { url } = NavigateTool.shape.arguments.parse(params);
-    await context.sendSocketMessage("browser_navigate", { url });
+
+    const trimmedUrl = url.trim();
+    const lowerUrl = trimmedUrl.toLowerCase();
+
+    // Security: Block dangerous URIs
+    if (
+      lowerUrl.startsWith("javascript:") ||
+      lowerUrl.startsWith("file:") ||
+      lowerUrl.startsWith("data:") ||
+      lowerUrl.startsWith("about:") ||
+      lowerUrl.startsWith("chrome:") ||
+      lowerUrl.startsWith("edge:")
+    ) {
+      return {
+        isError: true,
+        content: [{ type: "text", text: `Security Error: Blocked dangerous URI scheme in URL: ${url}` }],
+      };
+    }
+
+    let finalUrl = trimmedUrl;
+
+    if (!trimmedUrl.match(/^[a-zA-Z][a-zA-Z\d+\-.]*:/)) {
+      finalUrl = `http://${trimmedUrl}`;
+    } else {
+      try {
+        const parsed = new URL(trimmedUrl);
+        if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+          if (parsed.protocol === "localhost:") {
+            finalUrl = `http://${trimmedUrl}`;
+          } else {
+            return {
+              isError: true,
+              content: [{ type: "text", text: `Security Error: Blocked unsupported protocol in URL: ${url}` }],
+            };
+          }
+        }
+      } catch {
+        finalUrl = `http://${trimmedUrl}`;
+      }
+    }
+
+    await context.sendSocketMessage("browser_navigate", { url: finalUrl });
     if (snapshot) {
       return captureAriaSnapshot(context);
     }
@@ -28,7 +69,7 @@ export const navigate: ToolFactory = (snapshot) => ({
       content: [
         {
           type: "text",
-          text: `Navigated to ${url}`,
+          text: `Navigated to ${finalUrl}`,
         },
       ],
     };
