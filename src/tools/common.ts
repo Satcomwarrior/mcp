@@ -20,7 +20,33 @@ export const navigate: ToolFactory = (snapshot) => ({
   },
   handle: async (context, params) => {
     const { url } = NavigateTool.shape.arguments.parse(params);
-    await context.sendSocketMessage("browser_navigate", { url });
+
+    // Security: Block XSS and LFI via dangerous protocols
+    const lowerUrl = url.trim().toLowerCase();
+    const dangerousProtocols = ['javascript:', 'file:', 'data:', 'about:', 'chrome:', 'edge:'];
+    if (dangerousProtocols.some(p => lowerUrl.startsWith(p))) {
+      return {
+        isError: true,
+        content: [{ type: "text", text: "Error: Dangerous URL protocol blocked for security reasons." }]
+      };
+    }
+
+    // Security: Enforce HTTP/HTTPS scheme to prevent bypasses
+    let finalUrl = url;
+    try {
+      const parsedUrl = new URL(url.match(/^[a-zA-Z][a-zA-Z\d+\-.]*:/) ? url : `http://${url}`);
+      if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+        throw new Error("Invalid protocol");
+      }
+      finalUrl = parsedUrl.toString();
+    } catch (e) {
+      return {
+        isError: true,
+        content: [{ type: "text", text: "Error: Invalid URL format or unsupported protocol." }]
+      };
+    }
+
+    await context.sendSocketMessage("browser_navigate", { url: finalUrl });
     if (snapshot) {
       return captureAriaSnapshot(context);
     }
@@ -28,7 +54,7 @@ export const navigate: ToolFactory = (snapshot) => ({
       content: [
         {
           type: "text",
-          text: `Navigated to ${url}`,
+          text: `Navigated to ${finalUrl}`,
         },
       ],
     };
