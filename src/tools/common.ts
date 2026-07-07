@@ -19,7 +19,64 @@ export const navigate: ToolFactory = (snapshot) => ({
     inputSchema: zodToJsonSchema(NavigateTool.shape.arguments),
   },
   handle: async (context, params) => {
-    const { url } = NavigateTool.shape.arguments.parse(params);
+    let { url } = NavigateTool.shape.arguments.parse(params);
+
+    // Security: Validate URL protocol to prevent XSS (javascript:) and LFI (file:)
+    let trimmedUrl = url.trim();
+    const lowerUrl = trimmedUrl.toLowerCase();
+
+    const dangerousProtocols = ['javascript:', 'file:', 'data:', 'about:', 'chrome:', 'edge:'];
+    if (dangerousProtocols.some(p => lowerUrl.startsWith(p))) {
+      return {
+        content: [{ type: "text", text: "Security Error: Dangerous URL protocol blocked" }],
+        isError: true,
+      };
+    }
+
+    const hasProtocol = /^[a-zA-Z][a-zA-Z\d+\-.]*:/.test(trimmedUrl);
+    if (!hasProtocol) {
+        trimmedUrl = `http://${trimmedUrl}`;
+    }
+
+    try {
+        const parsed = new URL(trimmedUrl);
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+            const recoveredUrl = `http://${trimmedUrl}`;
+            try {
+                const recoveredParsed = new URL(recoveredUrl);
+                if (recoveredParsed.protocol === 'http:' || recoveredParsed.protocol === 'https:') {
+                    trimmedUrl = recoveredUrl;
+                } else {
+                    throw new Error();
+                }
+            } catch (e) {
+                 return {
+                   content: [{ type: "text", text: "Security Error: URL protocol must be http: or https:" }],
+                   isError: true,
+                 };
+            }
+        }
+    } catch (e) {
+        trimmedUrl = `http://${trimmedUrl}`;
+    }
+
+    try {
+        const finalParsed = new URL(trimmedUrl);
+        if (finalParsed.protocol !== 'http:' && finalParsed.protocol !== 'https:') {
+            return {
+              content: [{ type: "text", text: "Security Error: URL protocol must be http: or https:" }],
+              isError: true,
+            };
+        }
+    } catch (e) {
+        return {
+          content: [{ type: "text", text: "Security Error: Invalid URL format" }],
+          isError: true,
+        };
+    }
+
+    url = trimmedUrl;
+
     await context.sendSocketMessage("browser_navigate", { url });
     if (snapshot) {
       return captureAriaSnapshot(context);
