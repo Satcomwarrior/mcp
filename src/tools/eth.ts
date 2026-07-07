@@ -264,24 +264,31 @@ export const getEthPairData: Tool = {
       /change.*?([+-]?\d+\.?\d*%)/gi,
     ];
 
+    // ⚡ Bolt: Optimize regex matching using lazy matchAll with early break
     for (const pattern of pricePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        pairData.price.push(...matches.slice(0, 3));
+      let count = 0;
+      const safePattern = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
+      for (const match of snapshotText.matchAll(safePattern)) {
+        pairData.price.push(match[0]);
+        if (++count >= 3) break;
       }
     }
 
     for (const pattern of volumePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        pairData.volume.push(...matches.slice(0, 3));
+      let count = 0;
+      const safePattern = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
+      for (const match of snapshotText.matchAll(safePattern)) {
+        pairData.volume.push(match[0]);
+        if (++count >= 3) break;
       }
     }
 
     for (const pattern of changePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        pairData.change.push(...matches.slice(0, 3));
+      let count = 0;
+      const safePattern = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
+      for (const match of snapshotText.matchAll(safePattern)) {
+        pairData.change.push(match[0]);
+        if (++count >= 3) break;
       }
     }
 
