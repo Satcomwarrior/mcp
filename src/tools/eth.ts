@@ -327,10 +327,10 @@ export const getDeFiData: Tool = {
       .map((c) => (c as any).text)
       .join("\n");
 
-    const defiData: Record<string, string[]> = {
-      apy: [],
-      liquidity: [],
-      staking: [],
+    const defiData: Record<string, Set<string>> = {
+      apy: new Set(),
+      liquidity: new Set(),
+      staking: new Set(),
     };
 
     // APY/APR patterns
@@ -351,46 +351,42 @@ export const getDeFiData: Tool = {
       /rewards.*?(\d+\.?\d*)\s*(?:ETH|%)/gi,
     ];
 
-    if (dataType === "apy" || dataType === "all") {
-      for (const pattern of apyPatterns) {
-        const matches = snapshotText.match(pattern);
-        if (matches) {
-          defiData.apy.push(...matches.slice(0, 5));
+    const extractDeFiMatches = (patterns: RegExp[], targetSet: Set<string>) => {
+      for (const pattern of patterns) {
+        const safePattern = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
+        let count = 0;
+        for (const match of snapshotText.matchAll(safePattern)) {
+          targetSet.add(match[0]);
+          if (++count >= 5) break;
         }
       }
+    };
+
+    if (dataType === "apy" || dataType === "all") {
+      extractDeFiMatches(apyPatterns, defiData.apy);
     }
 
     if (dataType === "liquidity" || dataType === "all") {
-      for (const pattern of liquidityPatterns) {
-        const matches = snapshotText.match(pattern);
-        if (matches) {
-          defiData.liquidity.push(...matches.slice(0, 5));
-        }
-      }
+      extractDeFiMatches(liquidityPatterns, defiData.liquidity);
     }
 
     if (dataType === "staking" || dataType === "all") {
-      for (const pattern of stakingPatterns) {
-        const matches = snapshotText.match(pattern);
-        if (matches) {
-          defiData.staking.push(...matches.slice(0, 5));
-        }
-      }
+      extractDeFiMatches(stakingPatterns, defiData.staking);
     }
 
     let result = "DeFi Data:\n";
     let foundData = false;
 
-    if (defiData.apy.length > 0) {
-      result += `  APY/APR: ${[...new Set(defiData.apy)].join(", ")}\n`;
+    if (defiData.apy.size > 0) {
+      result += `  APY/APR: ${Array.from(defiData.apy).join(", ")}\n`;
       foundData = true;
     }
-    if (defiData.liquidity.length > 0) {
-      result += `  Liquidity/TVL: ${[...new Set(defiData.liquidity)].join(", ")}\n`;
+    if (defiData.liquidity.size > 0) {
+      result += `  Liquidity/TVL: ${Array.from(defiData.liquidity).join(", ")}\n`;
       foundData = true;
     }
-    if (defiData.staking.length > 0) {
-      result += `  Staking: ${[...new Set(defiData.staking)].join(", ")}`;
+    if (defiData.staking.size > 0) {
+      result += `  Staking: ${Array.from(defiData.staking).join(", ")}`;
       foundData = true;
     }
 
