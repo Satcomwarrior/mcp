@@ -78,6 +78,10 @@ const MonitorEthTransactionTool = z.object({
   }),
 });
 
+// Pre-compiled keyword regexes for performance optimization
+const SLOW_GAS_REGEX = /slow|low/i;
+const FAST_GAS_REGEX = /fast|rapid/i;
+
 // Tool implementations
 export const getGasPrice: Tool = {
   schema: {
@@ -104,14 +108,14 @@ export const getGasPrice: Tool = {
     const gasPrices: { type: string; value: string }[] = [];
     const lines = snapshotText.split("\n");
 
+    // Performance optimization: Avoid string.toLowerCase() and includes()
+    // by using pre-compiled case-insensitive regular expressions.
     for (const line of lines) {
-      const lowerLine = line.toLowerCase();
-      
       // Try to identify gas price type
       let gasType = "standard";
-      if (lowerLine.includes("slow") || lowerLine.includes("low")) {
+      if (SLOW_GAS_REGEX.test(line)) {
         gasType = "slow";
-      } else if (lowerLine.includes("fast") || lowerLine.includes("rapid")) {
+      } else if (FAST_GAS_REGEX.test(line)) {
         gasType = "fast";
       }
 
@@ -128,7 +132,7 @@ export const getGasPrice: Tool = {
     }
 
     const uniqueGasPrices = Array.from(
-      new Map(gasPrices.map((item) => [item.value, item])).values()
+      new Map(gasPrices.map((item) => [item.value, item])).values(),
     );
 
     const result =
@@ -169,10 +173,7 @@ export const getEthBalance: Tool = {
       /ETH.*?(\d+\.?\d*)/gi,
     ];
 
-    const usdPatterns = [
-      /\$[\d,]+\.?\d*/g,
-      /USD.*?[\d,]+\.?\d*/gi,
-    ];
+    const usdPatterns = [/\$[\d,]+\.?\d*/g, /USD.*?[\d,]+\.?\d*/gi];
 
     const balances: string[] = [];
     const usdValues: string[] = [];
@@ -188,7 +189,7 @@ export const getEthBalance: Tool = {
       // Look for ERC-20 token balances
       const tokenPattern = /(\d+\.?\d*)\s*([A-Z]{2,10})\b/g;
       const tokens = snapshotText.match(tokenPattern) || [];
-      balances.push(...tokens.filter(t => !t.includes('ETH')));
+      balances.push(...tokens.filter((t) => !t.includes("ETH")));
     }
 
     for (const pattern of usdPatterns) {
@@ -286,7 +287,7 @@ export const getEthPairData: Tool = {
     }
 
     let result = `Trading Pair Data for ${pair}:\n`;
-    
+
     if (pairData.price.length > 0) {
       result += `  Price: ${pairData.price[0]}\n`;
     }
@@ -297,7 +298,11 @@ export const getEthPairData: Tool = {
       result += `  24h Change: ${pairData.change[0]}`;
     }
 
-    if (pairData.price.length === 0 && pairData.volume.length === 0 && pairData.change.length === 0) {
+    if (
+      pairData.price.length === 0 &&
+      pairData.volume.length === 0 &&
+      pairData.change.length === 0
+    ) {
       result = `No trading pair data found for ${pair}`;
     }
 
@@ -416,7 +421,8 @@ export const monitorEthTransaction: Tool = {
     inputSchema: zodToJsonSchema(MonitorEthTransactionTool.shape.arguments),
   },
   handle: async (context: Context, params) => {
-    const { txHash, refreshInterval } = MonitorEthTransactionTool.shape.arguments.parse(params);
+    const { txHash, refreshInterval } =
+      MonitorEthTransactionTool.shape.arguments.parse(params);
 
     const snapshot = await captureAriaSnapshot(context);
     const snapshotText = snapshot.content
@@ -430,9 +436,7 @@ export const monitorEthTransaction: Tool = {
       /(success|failed|pending|confirmed)/gi,
     ];
 
-    const confirmationPatterns = [
-      /(\d+)\s*(?:confirmations?|blocks?)/gi,
-    ];
+    const confirmationPatterns = [/(\d+)\s*(?:confirmations?|blocks?)/gi];
 
     const gasPatterns = [
       /gas\s*used.*?(\d+\.?\d*)/gi,
