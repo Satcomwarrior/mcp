@@ -6,6 +6,9 @@ import { captureAriaSnapshot } from "@/utils/aria-snapshot";
 
 import type { Tool } from "./tool";
 
+// Module-level constants for performance
+const PORTFOLIO_REGEX = /balance|equity|position|holdings|portfolio|total|profit|loss|P&L|PnL/i;
+
 // Trading-specific tool schemas
 const GetPriceTool = z.object({
   name: z.literal("browser_get_price"),
@@ -277,26 +280,13 @@ export const getPortfolio: Tool = {
       .map((c) => (c as any).text)
       .join("\n");
     
-    // Look for portfolio-related keywords
-    const portfolioKeywords = [
-      "balance",
-      "equity",
-      "position",
-      "holdings",
-      "portfolio",
-      "total",
-      "profit",
-      "loss",
-      "P&L",
-      "PnL",
-    ];
-    
     const portfolioInfo: string[] = [];
     const lines = snapshotText.split("\n");
     
+    // Performance optimization: Replace manual keyword array iteration and toLowerCase()
+    // with a single pre-compiled case-insensitive RegExp test per line.
     for (const line of lines) {
-      const lowerLine = line.toLowerCase();
-      if (portfolioKeywords.some((keyword) => lowerLine.includes(keyword.toLowerCase()))) {
+      if (PORTFOLIO_REGEX.test(line)) {
         portfolioInfo.push(line.trim());
       }
     }
