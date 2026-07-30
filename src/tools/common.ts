@@ -20,6 +20,14 @@ export const navigate: ToolFactory = (snapshot) => ({
   },
   handle: async (context, params) => {
     const { url } = NavigateTool.shape.arguments.parse(params);
+
+    const urlObj = new URL(url);
+    if (!["http:", "https:"].includes(urlObj.protocol)) {
+      throw new Error(
+        `Navigation restricted to http/https protocols. Protocol '${urlObj.protocol}' is not allowed.`,
+      );
+    }
+
     await context.sendSocketMessage("browser_navigate", { url });
     if (snapshot) {
       return captureAriaSnapshot(context);
