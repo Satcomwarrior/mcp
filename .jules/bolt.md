@@ -4,3 +4,6 @@
 ## 2026-02-23 - Intl.NumberFormat Caching
 **Learning:** Instantiating `Intl.NumberFormat` repeatedly in a loop is a massive performance bottleneck. In this codebase's `src/utils/trading.ts` utility, formatting 10,000 prices dropped from ~4166ms to ~60ms (~69x speedup) simply by caching the formatter instance using a `Map` keyed by the currency and decimal configuration.
 **Action:** Always look for internal JavaScript globalization or formatting objects (like `Intl.NumberFormat`, `Intl.DateTimeFormat`) being created inside functions that are called frequently or in loops. Cache them aggressively using appropriate unique keys.
+## 2024-05-01 - Optimize String.prototype.match in large texts
+**Learning:** Using `String.prototype.match(/g/)` on enormous strings (like ARIA snapshots) when only a few results are needed causes extreme performance degradation due to full-string processing and massive memory allocation.
+**Action:** Replace `match(/g/)` with a while-loop using `RegExp.exec()` that breaks early as soon as the specific limit (e.g., 3-5 matches) is reached. Make sure to track both global and per-pattern counts to maintain original logic.
