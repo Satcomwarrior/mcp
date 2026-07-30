@@ -2,7 +2,7 @@ import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 
 import type { Context } from "@/context";
-import { captureAriaSnapshot } from "@/utils/aria-snapshot";
+import { captureAriaSnapshot, getSnapshotText } from "@/utils/aria-snapshot";
 
 import type { Tool } from "./tool";
 
@@ -89,10 +89,7 @@ export const getGasPrice: Tool = {
     const { unit } = GetGasPriceTool.shape.arguments.parse(params);
 
     const snapshot = await captureAriaSnapshot(context);
-    const snapshotText = snapshot.content
-      .filter((c) => c.type === "text")
-      .map((c) => (c as any).text)
-      .join("\n");
+    const snapshotText = getSnapshotText(snapshot);
 
     // Gas price patterns (common on Etherscan, exchanges, wallets)
     const gasPatterns = [
@@ -157,10 +154,7 @@ export const getEthBalance: Tool = {
     const { includeTokens } = GetEthBalanceTool.shape.arguments.parse(params);
 
     const snapshot = await captureAriaSnapshot(context);
-    const snapshotText = snapshot.content
-      .filter((c) => c.type === "text")
-      .map((c) => (c as any).text)
-      .join("\n");
+    const snapshotText = getSnapshotText(snapshot);
 
     // Balance patterns
     const balancePatterns = [
@@ -234,10 +228,7 @@ export const getEthPairData: Tool = {
     const { pair } = GetEthTradingPairTool.shape.arguments.parse(params);
 
     const snapshot = await captureAriaSnapshot(context);
-    const snapshotText = snapshot.content
-      .filter((c) => c.type === "text")
-      .map((c) => (c as any).text)
-      .join("\n");
+    const snapshotText = getSnapshotText(snapshot);
 
     // Extract trading pair data
     const pairData: Record<string, string[]> = {
@@ -322,10 +313,7 @@ export const getDeFiData: Tool = {
     const { dataType } = GetDeFiDataTool.shape.arguments.parse(params);
 
     const snapshot = await captureAriaSnapshot(context);
-    const snapshotText = snapshot.content
-      .filter((c) => c.type === "text")
-      .map((c) => (c as any).text)
-      .join("\n");
+    const snapshotText = getSnapshotText(snapshot);
 
     const defiData: Record<string, string[]> = {
       apy: [],
@@ -419,10 +407,7 @@ export const monitorEthTransaction: Tool = {
     const { txHash, refreshInterval } = MonitorEthTransactionTool.shape.arguments.parse(params);
 
     const snapshot = await captureAriaSnapshot(context);
-    const snapshotText = snapshot.content
-      .filter((c) => c.type === "text")
-      .map((c) => (c as any).text)
-      .join("\n");
+    const snapshotText = getSnapshotText(snapshot);
 
     // Look for transaction status indicators
     const statusPatterns = [

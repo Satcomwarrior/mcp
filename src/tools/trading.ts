@@ -2,7 +2,7 @@ import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 
 import type { Context } from "@/context";
-import { captureAriaSnapshot } from "@/utils/aria-snapshot";
+import { captureAriaSnapshot, getSnapshotText } from "@/utils/aria-snapshot";
 
 import type { Tool } from "./tool";
 
@@ -137,10 +137,7 @@ export const getPrice: Tool = {
     const snapshot = await captureAriaSnapshot(context);
     
     // Look for price in the snapshot content
-    const snapshotText = snapshot.content
-      .filter((c) => c.type === "text")
-      .map((c) => (c as any).text)
-      .join("\n");
+    const snapshotText = getSnapshotText(snapshot);
     
     // Common price patterns - ensure at least one digit
     const pricePatterns = [
@@ -233,10 +230,7 @@ export const monitorPrice: Tool = {
     
     for (let i = 0; i < iterations; i++) {
       const snapshot = await captureAriaSnapshot(context);
-      const snapshotText = snapshot.content
-        .filter((c) => c.type === "text")
-        .map((c) => (c as any).text)
-        .join("\n");
+      const snapshotText = getSnapshotText(snapshot);
       
       // Extract price
       const priceMatch = snapshotText.match(/\$[\d,]+\.?\d*/);
@@ -272,10 +266,7 @@ export const getPortfolio: Tool = {
     const { includeDetails } = GetPortfolioTool.shape.arguments.parse(params);
     
     const snapshot = await captureAriaSnapshot(context);
-    const snapshotText = snapshot.content
-      .filter((c) => c.type === "text")
-      .map((c) => (c as any).text)
-      .join("\n");
+    const snapshotText = getSnapshotText(snapshot);
     
     // Look for portfolio-related keywords
     const portfolioKeywords = [
@@ -346,10 +337,7 @@ export const getMarketData: Tool = {
     const { dataPoints } = GetMarketDataTool.shape.arguments.parse(params);
     
     const snapshot = await captureAriaSnapshot(context);
-    const snapshotText = snapshot.content
-      .filter((c) => c.type === "text")
-      .map((c) => (c as any).text)
-      .join("\n");
+    const snapshotText = getSnapshotText(snapshot);
     
     const marketData: Record<string, string[]> = {};
     
