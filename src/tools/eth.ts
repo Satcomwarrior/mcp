@@ -174,32 +174,40 @@ export const getEthBalance: Tool = {
       /USD.*?[\d,]+\.?\d*/gi,
     ];
 
-    const balances: string[] = [];
-    const usdValues: string[] = [];
+    const balances = new Set<string>();
+    const usdValues = new Set<string>();
 
     for (const pattern of balancePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        balances.push(...matches);
+      for (const match of snapshotText.matchAll(pattern)) {
+        balances.add(match[0]);
+        if (balances.size >= 10) break;
       }
+      if (balances.size >= 10) break;
     }
 
     if (includeTokens) {
       // Look for ERC-20 token balances
       const tokenPattern = /(\d+\.?\d*)\s*([A-Z]{2,10})\b/g;
-      const tokens = snapshotText.match(tokenPattern) || [];
-      balances.push(...tokens.filter(t => !t.includes('ETH')));
-    }
-
-    for (const pattern of usdPatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        usdValues.push(...matches.slice(0, 3)); // Limit to first 3 USD values
+      for (const match of snapshotText.matchAll(tokenPattern)) {
+        if (!match[0].includes('ETH')) {
+          balances.add(match[0]);
+        }
+        if (balances.size >= 10) break;
       }
     }
 
-    const uniqueBalances = [...new Set(balances)].slice(0, 10);
-    const uniqueUsdValues = [...new Set(usdValues)].slice(0, 5);
+    for (const pattern of usdPatterns) {
+      let matchCount = 0;
+      for (const match of snapshotText.matchAll(pattern)) {
+        usdValues.add(match[0]);
+        matchCount++;
+        if (matchCount >= 3 || usdValues.size >= 5) break;
+      }
+      if (usdValues.size >= 5) break;
+    }
+
+    const uniqueBalances = Array.from(balances);
+    const uniqueUsdValues = Array.from(usdValues);
 
     let result = "ETH Balance Information:\n";
     if (uniqueBalances.length > 0) {
@@ -264,26 +272,20 @@ export const getEthPairData: Tool = {
       /change.*?([+-]?\d+\.?\d*%)/gi,
     ];
 
-    for (const pattern of pricePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        pairData.price.push(...matches.slice(0, 3));
+    const extractMatches = (patterns: RegExp[], targetArr: string[], maxPerPattern: number) => {
+      for (const pattern of patterns) {
+        let matchCount = 0;
+        for (const match of snapshotText.matchAll(pattern)) {
+          if (matchCount >= maxPerPattern) break;
+          targetArr.push(match[0]);
+          matchCount++;
+        }
       }
-    }
+    };
 
-    for (const pattern of volumePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        pairData.volume.push(...matches.slice(0, 3));
-      }
-    }
-
-    for (const pattern of changePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        pairData.change.push(...matches.slice(0, 3));
-      }
-    }
+    extractMatches(pricePatterns, pairData.price, 3);
+    extractMatches(volumePatterns, pairData.volume, 3);
+    extractMatches(changePatterns, pairData.change, 3);
 
     let result = `Trading Pair Data for ${pair}:\n`;
     
@@ -351,31 +353,27 @@ export const getDeFiData: Tool = {
       /rewards.*?(\d+\.?\d*)\s*(?:ETH|%)/gi,
     ];
 
-    if (dataType === "apy" || dataType === "all") {
-      for (const pattern of apyPatterns) {
-        const matches = snapshotText.match(pattern);
-        if (matches) {
-          defiData.apy.push(...matches.slice(0, 5));
+    const extractDefiMatches = (patterns: RegExp[], targetArr: string[], maxPerPattern: number) => {
+      for (const pattern of patterns) {
+        let matchCount = 0;
+        for (const match of snapshotText.matchAll(pattern)) {
+          if (matchCount >= maxPerPattern) break;
+          targetArr.push(match[0]);
+          matchCount++;
         }
       }
+    };
+
+    if (dataType === "apy" || dataType === "all") {
+      extractDefiMatches(apyPatterns, defiData.apy, 5);
     }
 
     if (dataType === "liquidity" || dataType === "all") {
-      for (const pattern of liquidityPatterns) {
-        const matches = snapshotText.match(pattern);
-        if (matches) {
-          defiData.liquidity.push(...matches.slice(0, 5));
-        }
-      }
+      extractDefiMatches(liquidityPatterns, defiData.liquidity, 5);
     }
 
     if (dataType === "staking" || dataType === "all") {
-      for (const pattern of stakingPatterns) {
-        const matches = snapshotText.match(pattern);
-        if (matches) {
-          defiData.staking.push(...matches.slice(0, 5));
-        }
-      }
+      extractDefiMatches(stakingPatterns, defiData.staking, 5);
     }
 
     let result = "DeFi Data:\n";
