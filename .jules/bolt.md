@@ -4,3 +4,6 @@
 ## 2026-02-23 - Intl.NumberFormat Caching
 **Learning:** Instantiating `Intl.NumberFormat` repeatedly in a loop is a massive performance bottleneck. In this codebase's `src/utils/trading.ts` utility, formatting 10,000 prices dropped from ~4166ms to ~60ms (~69x speedup) simply by caching the formatter instance using a `Map` keyed by the currency and decimal configuration.
 **Action:** Always look for internal JavaScript globalization or formatting objects (like `Intl.NumberFormat`, `Intl.DateTimeFormat`) being created inside functions that are called frequently or in loops. Cache them aggressively using appropriate unique keys.
+## 2026-05-17 - Spread Operator Call Stack Limits in Node.js
+**Learning:** Using the spread operator to push regex matches into an array (`array.push(...matches)`) can cause a `RangeError: Maximum call stack size exceeded` in Node.js when processing exceptionally large inputs. Converting sets to arrays is faster than spread.
+**Action:** Use iterative insertion, such as a `while` loop with `RegExp.exec()` and `Set.add()`, to process matches safely and efficiently without exceeding stack limits. Also prefer Array.from(set) instead of [...set].
