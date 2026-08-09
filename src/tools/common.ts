@@ -19,7 +19,22 @@ export const navigate: ToolFactory = (snapshot) => ({
     inputSchema: zodToJsonSchema(NavigateTool.shape.arguments),
   },
   handle: async (context, params) => {
-    const { url } = NavigateTool.shape.arguments.parse(params);
+    let { url } = NavigateTool.shape.arguments.parse(params);
+
+    // Security: Block dangerous protocols to prevent XSS and LFI vulnerabilities
+    const trimmedUrl = url.trim().toLowerCase();
+    const blockedProtocols = ['javascript:', 'file:', 'data:', 'about:', 'chrome:', 'edge:'];
+    if (blockedProtocols.some(p => trimmedUrl.startsWith(p))) {
+      return {
+        isError: true,
+        content: [{ type: "text", text: "Error: Navigation to restricted protocol blocked for security reasons." }],
+      };
+    }
+    // Prepend http:// if no protocol is specified
+    if (!url.match(/^[a-zA-Z][a-zA-Z\d+\-.]*:/)) {
+      url = 'http://' + url;
+    }
+
     await context.sendSocketMessage("browser_navigate", { url });
     if (snapshot) {
       return captureAriaSnapshot(context);
