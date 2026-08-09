@@ -19,7 +19,27 @@ export const navigate: ToolFactory = (snapshot) => ({
     inputSchema: zodToJsonSchema(NavigateTool.shape.arguments),
   },
   handle: async (context, params) => {
-    const { url } = NavigateTool.shape.arguments.parse(params);
+    let { url } = NavigateTool.shape.arguments.parse(params);
+
+    // Security: Validate URL protocol to prevent XSS/LFI
+    const normalizedUrl = url.trim().toLowerCase();
+    const dangerousProtocols = ['javascript:', 'file:', 'data:', 'about:', 'chrome:', 'edge:'];
+    if (dangerousProtocols.some(p => normalizedUrl.startsWith(p))) {
+      return {
+        isError: true,
+        content: [{ type: "text", text: `Error: Dangerous URL protocol detected in ${url}` }],
+      };
+    }
+
+    try {
+      const parsed = new URL(url);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+        url = `http://${url}`;
+      }
+    } catch {
+      url = `http://${url}`;
+    }
+
     await context.sendSocketMessage("browser_navigate", { url });
     if (snapshot) {
       return captureAriaSnapshot(context);
