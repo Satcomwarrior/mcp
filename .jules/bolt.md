@@ -4,3 +4,6 @@
 ## 2026-02-23 - Intl.NumberFormat Caching
 **Learning:** Instantiating `Intl.NumberFormat` repeatedly in a loop is a massive performance bottleneck. In this codebase's `src/utils/trading.ts` utility, formatting 10,000 prices dropped from ~4166ms to ~60ms (~69x speedup) simply by caching the formatter instance using a `Map` keyed by the currency and decimal configuration.
 **Action:** Always look for internal JavaScript globalization or formatting objects (like `Intl.NumberFormat`, `Intl.DateTimeFormat`) being created inside functions that are called frequently or in loops. Cache them aggressively using appropriate unique keys.
+## 2024-05-30 - RegExp Lazy Evaluation with matchAll
+**Learning:** When using regex to extract a limited number of items (e.g. `match(/.../gi).slice(0, 3)`) on very large text blocks like ARIA snapshots, the initial `match` operation parses and evaluates the entire string, creating a huge array and causing a significant performance bottleneck.
+**Action:** Replace `match` with `matchAll` in a `for...of` loop with an early `break` when the limit is reached. Collecting the results directly into a `Set` simultaneously prevents duplicates and avoids intermediate array allocations, reducing execution time drastically (e.g. 1000ms -> 75ms).
