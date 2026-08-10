@@ -11,3 +11,7 @@
 **Vulnerability:** Node.js `net.createServer()` and `WebSocketServer` bind to all network interfaces (`::` or `0.0.0.0`) by default if no host is specified, exposing local automation endpoints to external networks.
 **Learning:** Internal tools relying on default Node.js host binding can become remote code execution vectors.
 **Prevention:** Always explicitly provide the `host: '127.0.0.1'` configuration parameter when instantiating local network servers.
+## 2024-05-24 - Missing URL Scheme Validation in Headless Browser Navigation
+**Vulnerability:** The `navigate` tool in `src/tools/common.ts` failed to validate URL protocols, allowing users to pass `javascript:` or `file:` URIs directly to the headless browser.
+**Learning:** Headless browser tools are vulnerable to severe XSS and Local File Inclusion (LFI) if destination URLs are not strictly checked against an explicit allowlist (e.g. `http:`, `https:`).
+**Prevention:** Always validate and normalize target URLs in browser automation tools. Block dangerous schemes early and explicitly enforce safe protocols before passing URLs to the browser instance.
