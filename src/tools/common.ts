@@ -20,6 +20,23 @@ export const navigate: ToolFactory = (snapshot) => ({
   },
   handle: async (context, params) => {
     const { url } = NavigateTool.shape.arguments.parse(params);
+
+    // Security: Enforce URL protocol allowlists to prevent XSS and LFI vulnerabilities
+    const normalizedUrl = url.trim().toLowerCase();
+    if (
+      normalizedUrl.startsWith("javascript:") ||
+      normalizedUrl.startsWith("file:") ||
+      normalizedUrl.startsWith("data:") ||
+      normalizedUrl.startsWith("about:") ||
+      normalizedUrl.startsWith("chrome:") ||
+      normalizedUrl.startsWith("edge:")
+    ) {
+      return {
+        isError: true,
+        content: [{ type: "text", text: "Error: Unsafe URL protocol blocked for security." }],
+      };
+    }
+
     await context.sendSocketMessage("browser_navigate", { url });
     if (snapshot) {
       return captureAriaSnapshot(context);
