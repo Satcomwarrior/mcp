@@ -264,24 +264,30 @@ export const getEthPairData: Tool = {
       /change.*?([+-]?\d+\.?\d*%)/gi,
     ];
 
+    // ⚡ Bolt Performance Optimization
+    // Use lazy matchAll iteration to early break once limit is reached,
+    // instead of matching the entire snapshot string.
     for (const pattern of pricePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        pairData.price.push(...matches.slice(0, 3));
+      let count = 0;
+      for (const match of snapshotText.matchAll(pattern)) {
+        pairData.price.push(match[0]);
+        if (++count >= 3) break;
       }
     }
 
     for (const pattern of volumePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        pairData.volume.push(...matches.slice(0, 3));
+      let count = 0;
+      for (const match of snapshotText.matchAll(pattern)) {
+        pairData.volume.push(match[0]);
+        if (++count >= 3) break;
       }
     }
 
     for (const pattern of changePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        pairData.change.push(...matches.slice(0, 3));
+      let count = 0;
+      for (const match of snapshotText.matchAll(pattern)) {
+        pairData.change.push(match[0]);
+        if (++count >= 3) break;
       }
     }
 
