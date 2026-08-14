@@ -19,8 +19,29 @@ export const navigate: ToolFactory = (snapshot) => ({
     inputSchema: zodToJsonSchema(NavigateTool.shape.arguments),
   },
   handle: async (context, params) => {
-    const { url } = NavigateTool.shape.arguments.parse(params);
-    await context.sendSocketMessage("browser_navigate", { url });
+    let { url } = NavigateTool.shape.arguments.parse(params);
+
+    // 🛡️ Sentinel: Enforce safe URL protocols (prevent LFI/XSS via file:, javascript:, etc.)
+    let safeUrl = url.trim();
+    try {
+      const parsed = new URL(safeUrl);
+      const protocol = parsed.protocol.toLowerCase();
+      if (protocol === "localhost:") {
+        safeUrl = new URL(`http://${safeUrl}`).toString();
+      } else if (protocol !== "http:" && protocol !== "https:") {
+        return { isError: true, content: [{ type: "text", text: `Blocked navigation to unsafe URL protocol: ${protocol}` }] };
+      } else {
+        safeUrl = parsed.toString();
+      }
+    } catch (e) {
+      try {
+        safeUrl = new URL(`http://${safeUrl}`).toString();
+      } catch {
+        return { isError: true, content: [{ type: "text", text: "Invalid URL provided." }] };
+      }
+    }
+
+    await context.sendSocketMessage("browser_navigate", { url: safeUrl });
     if (snapshot) {
       return captureAriaSnapshot(context);
     }

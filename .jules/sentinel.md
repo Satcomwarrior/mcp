@@ -11,3 +11,7 @@
 **Vulnerability:** Node.js `net.createServer()` and `WebSocketServer` bind to all network interfaces (`::` or `0.0.0.0`) by default if no host is specified, exposing local automation endpoints to external networks.
 **Learning:** Internal tools relying on default Node.js host binding can become remote code execution vectors.
 **Prevention:** Always explicitly provide the `host: '127.0.0.1'` configuration parameter when instantiating local network servers.
+## 2026-08-14 - URL Parsing Quirks in Node.js
+**Vulnerability:** Headless browser navigation tools missing protocol allowlists can be exploited via dangerous URIs (e.g., `javascript:` for XSS, `file:` for LFI).
+**Learning:** Node.js `URL` constructor parses strings like `localhost:3000` using `localhost:` as the protocol, which can complicate simple string-based protocol validation or `includes('://')` checks.
+**Prevention:** Strictly parse the URL using the `URL` object, inspect the `.protocol` property explicitly, allow only `http:` and `https:`, and carefully handle fallback parsing (e.g., prepending `http://`) for URLs missing a scheme.
