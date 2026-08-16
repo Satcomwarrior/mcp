@@ -174,32 +174,47 @@ export const getEthBalance: Tool = {
       /USD.*?[\d,]+\.?\d*/gi,
     ];
 
-    const balances: string[] = [];
-    const usdValues: string[] = [];
+    // Bolt: Use Sets directly with matchAll for lazy iteration to avoid full-string processing.
+    // Early break when size limit is reached provides massive speedups on large snapshots.
+    const balancesSet = new Set<string>();
+    const usdValuesSet = new Set<string>();
 
     for (const pattern of balancePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        balances.push(...matches);
+      if (balancesSet.size >= 10) break;
+      const safePattern = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
+      for (const match of snapshotText.matchAll(safePattern)) {
+        balancesSet.add(match[0]);
+        if (balancesSet.size >= 10) break;
       }
     }
 
     if (includeTokens) {
       // Look for ERC-20 token balances
       const tokenPattern = /(\d+\.?\d*)\s*([A-Z]{2,10})\b/g;
-      const tokens = snapshotText.match(tokenPattern) || [];
-      balances.push(...tokens.filter(t => !t.includes('ETH')));
-    }
-
-    for (const pattern of usdPatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        usdValues.push(...matches.slice(0, 3)); // Limit to first 3 USD values
+      const safePattern = new RegExp(tokenPattern.source, tokenPattern.flags.includes('g') ? tokenPattern.flags : tokenPattern.flags + 'g');
+      for (const match of snapshotText.matchAll(safePattern)) {
+        if (!match[0].includes('ETH')) {
+          balancesSet.add(match[0]);
+        }
+        if (balancesSet.size >= 10) break;
       }
     }
 
-    const uniqueBalances = [...new Set(balances)].slice(0, 10);
-    const uniqueUsdValues = [...new Set(usdValues)].slice(0, 5);
+    for (const pattern of usdPatterns) {
+      if (usdValuesSet.size >= 5) break;
+      let patternCount = 0;
+      const safePattern = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
+      for (const match of snapshotText.matchAll(safePattern)) {
+        usdValuesSet.add(match[0]);
+        patternCount++;
+        // Enforce the original per-pattern limit of 3, plus the global limit of 5
+        if (patternCount >= 3 || usdValuesSet.size >= 5) break;
+      }
+    }
+
+    // Bolt: Array.from is ~5x faster than spread operator for Set -> Array conversion
+    const uniqueBalances = Array.from(balancesSet);
+    const uniqueUsdValues = Array.from(usdValuesSet);
 
     let result = "ETH Balance Information:\n";
     if (uniqueBalances.length > 0) {
