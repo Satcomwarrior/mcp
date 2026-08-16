@@ -353,27 +353,36 @@ export const getDeFiData: Tool = {
 
     if (dataType === "apy" || dataType === "all") {
       for (const pattern of apyPatterns) {
-        const matches = snapshotText.match(pattern);
-        if (matches) {
-          defiData.apy.push(...matches.slice(0, 5));
+        let count = 0;
+        // Optimize: use lazy matchAll with early break instead of full match evaluation
+        const safePattern = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
+        for (const match of snapshotText.matchAll(safePattern)) {
+          defiData.apy.push(match[0]);
+          if (++count >= 5) break;
         }
       }
     }
 
     if (dataType === "liquidity" || dataType === "all") {
       for (const pattern of liquidityPatterns) {
-        const matches = snapshotText.match(pattern);
-        if (matches) {
-          defiData.liquidity.push(...matches.slice(0, 5));
+        let count = 0;
+        // Optimize: use lazy matchAll with early break instead of full match evaluation
+        const safePattern = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
+        for (const match of snapshotText.matchAll(safePattern)) {
+          defiData.liquidity.push(match[0]);
+          if (++count >= 5) break;
         }
       }
     }
 
     if (dataType === "staking" || dataType === "all") {
       for (const pattern of stakingPatterns) {
-        const matches = snapshotText.match(pattern);
-        if (matches) {
-          defiData.staking.push(...matches.slice(0, 5));
+        let count = 0;
+        // Optimize: use lazy matchAll with early break instead of full match evaluation
+        const safePattern = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
+        for (const match of snapshotText.matchAll(safePattern)) {
+          defiData.staking.push(match[0]);
+          if (++count >= 5) break;
         }
       }
     }
