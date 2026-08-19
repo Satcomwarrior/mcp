@@ -20,7 +20,60 @@ export const navigate: ToolFactory = (snapshot) => ({
   },
   handle: async (context, params) => {
     const { url } = NavigateTool.shape.arguments.parse(params);
-    await context.sendSocketMessage("browser_navigate", { url });
+
+    // Security enhancement: Validate URL protocols to prevent XSS and LFI
+    const normalizedUrl = url.trim().toLowerCase();
+    if (
+      normalizedUrl.startsWith("javascript:") ||
+      normalizedUrl.startsWith("file:") ||
+      normalizedUrl.startsWith("data:") ||
+      normalizedUrl.startsWith("about:") ||
+      normalizedUrl.startsWith("chrome:") ||
+      normalizedUrl.startsWith("edge:")
+    ) {
+      return {
+        isError: true,
+        content: [
+          {
+            type: "text",
+            text: `Error: Navigation to potentially dangerous protocol in URL is blocked for security reasons.`
+          }
+        ]
+      };
+    }
+
+    let urlToParse = url.trim();
+    if (!urlToParse.includes("://")) {
+      urlToParse = `http://${urlToParse}`;
+    }
+
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(urlToParse);
+      if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+        return {
+          isError: true,
+          content: [
+            {
+              type: "text",
+              text: `Error: Navigation to unsupported protocol '${parsedUrl.protocol}' is blocked. Only http: and https: are allowed.`
+            }
+          ]
+        };
+      }
+    } catch (e) {
+      return {
+        isError: true,
+        content: [
+          {
+            type: "text",
+            text: `Error: Invalid URL format provided.`
+          }
+        ]
+      };
+    }
+
+    await context.sendSocketMessage("browser_navigate", { url: parsedUrl.href });
     if (snapshot) {
       return captureAriaSnapshot(context);
     }
