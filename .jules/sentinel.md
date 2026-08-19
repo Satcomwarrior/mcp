@@ -11,3 +11,7 @@
 **Vulnerability:** Node.js `net.createServer()` and `WebSocketServer` bind to all network interfaces (`::` or `0.0.0.0`) by default if no host is specified, exposing local automation endpoints to external networks.
 **Learning:** Internal tools relying on default Node.js host binding can become remote code execution vectors.
 **Prevention:** Always explicitly provide the `host: '127.0.0.1'` configuration parameter when instantiating local network servers.
+## 2024-05-23 - Prevent Browser MCP XSS & LFI via Navigate Tool
+**Vulnerability:** The navigate tool allowed navigating to arbitrary URI schemes like javascript: and file:, which enabled code execution in the browser context and local file inclusion.
+**Learning:** Node's URL constructor can misinterpret scheme-less hostnames (e.g. localhost:3000) by treating the host as the scheme (localhost:). Using regex for scheme validation has edge cases. We must explicitly check for missing schemes and prepend `http://` before URL parsing.
+**Prevention:** Always validate schemes against an explicit blocked list, trim and lowercase inputs, and carefully handle scheme-less URLs by checking for `://` and known dangerous protocol prefixes before passing to the URL constructor.

@@ -20,7 +20,47 @@ export const navigate: ToolFactory = (snapshot) => ({
   },
   handle: async (context, params) => {
     const { url } = NavigateTool.shape.arguments.parse(params);
-    await context.sendSocketMessage("browser_navigate", { url });
+
+    // Security: Validate URL protocol to prevent XSS and local file inclusion
+    let parsedUrl: URL;
+    try {
+      const trimmedUrl = url.trim().toLowerCase();
+      // Handle schema-less localhost URLs which URL parser might misinterpret
+      const isMissingScheme =
+        !trimmedUrl.includes("://") &&
+        !trimmedUrl.startsWith("javascript:") &&
+        !trimmedUrl.startsWith("data:") &&
+        !trimmedUrl.startsWith("file:") &&
+        !trimmedUrl.startsWith("about:") &&
+        !trimmedUrl.startsWith("chrome:") &&
+        !trimmedUrl.startsWith("edge:");
+
+      const urlToParse = isMissingScheme ? `http://${url.trim()}` : url.trim();
+      parsedUrl = new URL(urlToParse);
+    } catch (e) {
+      return {
+        isError: true,
+        content: [{ type: "text", text: `Invalid URL format: ${url}` }],
+      };
+    }
+
+    const blockedProtocols = [
+      "javascript:",
+      "file:",
+      "data:",
+      "about:",
+      "chrome:",
+      "edge:",
+    ];
+
+    if (blockedProtocols.includes(parsedUrl.protocol)) {
+      return {
+        isError: true,
+        content: [{ type: "text", text: `Navigation to ${parsedUrl.protocol} is not allowed for security reasons.` }],
+      };
+    }
+
+    await context.sendSocketMessage("browser_navigate", { url: parsedUrl.href });
     if (snapshot) {
       return captureAriaSnapshot(context);
     }
