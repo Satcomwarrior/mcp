@@ -174,32 +174,42 @@ export const getEthBalance: Tool = {
       /USD.*?[\d,]+\.?\d*/gi,
     ];
 
-    const balances: string[] = [];
-    const usdValues: string[] = [];
+    const balances = new Set<string>();
+    const usdValues = new Set<string>();
 
     for (const pattern of balancePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        balances.push(...matches);
+      const safePattern = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
+      for (const match of snapshotText.matchAll(safePattern)) {
+        balances.add(match[0]);
+        if (balances.size >= 10) break;
       }
+      if (balances.size >= 10) break;
     }
 
-    if (includeTokens) {
+    if (includeTokens && balances.size < 10) {
       // Look for ERC-20 token balances
       const tokenPattern = /(\d+\.?\d*)\s*([A-Z]{2,10})\b/g;
-      const tokens = snapshotText.match(tokenPattern) || [];
-      balances.push(...tokens.filter(t => !t.includes('ETH')));
+      for (const match of snapshotText.matchAll(tokenPattern)) {
+        if (!match[0].includes('ETH')) {
+          balances.add(match[0]);
+          if (balances.size >= 10) break;
+        }
+      }
     }
 
     for (const pattern of usdPatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        usdValues.push(...matches.slice(0, 3)); // Limit to first 3 USD values
+      const safePattern = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
+      let patternCount = 0;
+      for (const match of snapshotText.matchAll(safePattern)) {
+        usdValues.add(match[0]);
+        patternCount++;
+        if (patternCount >= 3 || usdValues.size >= 5) break; // Limit to first 3 USD values per pattern, 5 total
       }
+      if (usdValues.size >= 5) break;
     }
 
-    const uniqueBalances = [...new Set(balances)].slice(0, 10);
-    const uniqueUsdValues = [...new Set(usdValues)].slice(0, 5);
+    const uniqueBalances = Array.from(balances);
+    const uniqueUsdValues = Array.from(usdValues);
 
     let result = "ETH Balance Information:\n";
     if (uniqueBalances.length > 0) {
