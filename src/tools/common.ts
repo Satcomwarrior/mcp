@@ -20,6 +20,14 @@ export const navigate: ToolFactory = (snapshot) => ({
   },
   handle: async (context, params) => {
     const { url } = NavigateTool.shape.arguments.parse(params);
+
+    // Security: Block dangerous protocols (XSS/LFI protection)
+    const lower = url.trim().toLowerCase();
+    const dangerousProtocols = ["javascript:", "file:", "data:", "about:", "chrome:", "edge:"];
+    if (dangerousProtocols.some((proto) => lower.startsWith(proto))) {
+      throw new Error(`Navigation to dangerous protocol is blocked for security reasons.`);
+    }
+
     await context.sendSocketMessage("browser_navigate", { url });
     if (snapshot) {
       return captureAriaSnapshot(context);
