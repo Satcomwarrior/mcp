@@ -240,10 +240,10 @@ export const getEthPairData: Tool = {
       .join("\n");
 
     // Extract trading pair data
-    const pairData: Record<string, string[]> = {
-      price: [],
-      volume: [],
-      change: [],
+    const pairData: Record<string, Set<string>> = {
+      price: new Set(),
+      volume: new Set(),
+      change: new Set(),
     };
 
     // Price patterns
@@ -265,39 +265,42 @@ export const getEthPairData: Tool = {
     ];
 
     for (const pattern of pricePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        pairData.price.push(...matches.slice(0, 3));
+      let count = 0;
+      for (const match of snapshotText.matchAll(pattern)) {
+        pairData.price.add(match[0]);
+        if (++count >= 3) break;
       }
     }
 
     for (const pattern of volumePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        pairData.volume.push(...matches.slice(0, 3));
+      let count = 0;
+      for (const match of snapshotText.matchAll(pattern)) {
+        pairData.volume.add(match[0]);
+        if (++count >= 3) break;
       }
     }
 
     for (const pattern of changePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        pairData.change.push(...matches.slice(0, 3));
+      let count = 0;
+      for (const match of snapshotText.matchAll(pattern)) {
+        pairData.change.add(match[0]);
+        if (++count >= 3) break;
       }
     }
 
     let result = `Trading Pair Data for ${pair}:\n`;
     
-    if (pairData.price.length > 0) {
-      result += `  Price: ${pairData.price[0]}\n`;
+    if (pairData.price.size > 0) {
+      result += `  Price: ${Array.from(pairData.price)[0]}\n`;
     }
-    if (pairData.volume.length > 0) {
-      result += `  Volume: ${pairData.volume[0]}\n`;
+    if (pairData.volume.size > 0) {
+      result += `  Volume: ${Array.from(pairData.volume)[0]}\n`;
     }
-    if (pairData.change.length > 0) {
-      result += `  24h Change: ${pairData.change[0]}`;
+    if (pairData.change.size > 0) {
+      result += `  24h Change: ${Array.from(pairData.change)[0]}`;
     }
 
-    if (pairData.price.length === 0 && pairData.volume.length === 0 && pairData.change.length === 0) {
+    if (pairData.price.size === 0 && pairData.volume.size === 0 && pairData.change.size === 0) {
       result = `No trading pair data found for ${pair}`;
     }
 
@@ -327,10 +330,10 @@ export const getDeFiData: Tool = {
       .map((c) => (c as any).text)
       .join("\n");
 
-    const defiData: Record<string, string[]> = {
-      apy: [],
-      liquidity: [],
-      staking: [],
+    const defiData: Record<string, Set<string>> = {
+      apy: new Set(),
+      liquidity: new Set(),
+      staking: new Set(),
     };
 
     // APY/APR patterns
@@ -353,27 +356,30 @@ export const getDeFiData: Tool = {
 
     if (dataType === "apy" || dataType === "all") {
       for (const pattern of apyPatterns) {
-        const matches = snapshotText.match(pattern);
-        if (matches) {
-          defiData.apy.push(...matches.slice(0, 5));
+        let count = 0;
+        for (const match of snapshotText.matchAll(pattern)) {
+          defiData.apy.add(match[0]);
+          if (++count >= 5) break;
         }
       }
     }
 
     if (dataType === "liquidity" || dataType === "all") {
       for (const pattern of liquidityPatterns) {
-        const matches = snapshotText.match(pattern);
-        if (matches) {
-          defiData.liquidity.push(...matches.slice(0, 5));
+        let count = 0;
+        for (const match of snapshotText.matchAll(pattern)) {
+          defiData.liquidity.add(match[0]);
+          if (++count >= 5) break;
         }
       }
     }
 
     if (dataType === "staking" || dataType === "all") {
       for (const pattern of stakingPatterns) {
-        const matches = snapshotText.match(pattern);
-        if (matches) {
-          defiData.staking.push(...matches.slice(0, 5));
+        let count = 0;
+        for (const match of snapshotText.matchAll(pattern)) {
+          defiData.staking.add(match[0]);
+          if (++count >= 5) break;
         }
       }
     }
@@ -381,16 +387,16 @@ export const getDeFiData: Tool = {
     let result = "DeFi Data:\n";
     let foundData = false;
 
-    if (defiData.apy.length > 0) {
-      result += `  APY/APR: ${[...new Set(defiData.apy)].join(", ")}\n`;
+    if (defiData.apy.size > 0) {
+      result += `  APY/APR: ${Array.from(defiData.apy).join(", ")}\n`;
       foundData = true;
     }
-    if (defiData.liquidity.length > 0) {
-      result += `  Liquidity/TVL: ${[...new Set(defiData.liquidity)].join(", ")}\n`;
+    if (defiData.liquidity.size > 0) {
+      result += `  Liquidity/TVL: ${Array.from(defiData.liquidity).join(", ")}\n`;
       foundData = true;
     }
-    if (defiData.staking.length > 0) {
-      result += `  Staking: ${[...new Set(defiData.staking)].join(", ")}`;
+    if (defiData.staking.size > 0) {
+      result += `  Staking: ${Array.from(defiData.staking).join(", ")}`;
       foundData = true;
     }
 
