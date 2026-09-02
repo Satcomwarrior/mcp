@@ -191,10 +191,16 @@ export const getEthBalance: Tool = {
       balances.push(...tokens.filter(t => !t.includes('ETH')));
     }
 
+    // ⚡ Bolt Optimization: Replace greedy string.match() with lazy matchAll()
+    // Using early breaks after finding the limited number of matches per pattern
+    // prevents evaluating the entire ARIA snapshot string, saving CPU time.
     for (const pattern of usdPatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        usdValues.push(...matches.slice(0, 3)); // Limit to first 3 USD values
+      let count = 0;
+      const safePattern = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
+      for (const match of snapshotText.matchAll(safePattern)) {
+        usdValues.push(match[0]);
+        count++;
+        if (count >= 3) break; // Limit to first 3 USD values
       }
     }
 
@@ -264,24 +270,36 @@ export const getEthPairData: Tool = {
       /change.*?([+-]?\d+\.?\d*%)/gi,
     ];
 
+    // ⚡ Bolt Optimization: Replace greedy string.match() with lazy matchAll()
+    // Using early breaks after finding the limited number of matches per pattern
+    // prevents evaluating the entire ARIA snapshot string, saving CPU time.
     for (const pattern of pricePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        pairData.price.push(...matches.slice(0, 3));
+      let count = 0;
+      const safePattern = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
+      for (const match of snapshotText.matchAll(safePattern)) {
+        pairData.price.push(match[0]);
+        count++;
+        if (count >= 3) break;
       }
     }
 
     for (const pattern of volumePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        pairData.volume.push(...matches.slice(0, 3));
+      let count = 0;
+      const safePattern = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
+      for (const match of snapshotText.matchAll(safePattern)) {
+        pairData.volume.push(match[0]);
+        count++;
+        if (count >= 3) break;
       }
     }
 
     for (const pattern of changePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        pairData.change.push(...matches.slice(0, 3));
+      let count = 0;
+      const safePattern = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
+      for (const match of snapshotText.matchAll(safePattern)) {
+        pairData.change.push(match[0]);
+        count++;
+        if (count >= 3) break;
       }
     }
 
@@ -327,10 +345,10 @@ export const getDeFiData: Tool = {
       .map((c) => (c as any).text)
       .join("\n");
 
-    const defiData: Record<string, string[]> = {
-      apy: [],
-      liquidity: [],
-      staking: [],
+    const defiData = {
+      apy: new Set<string>(),
+      liquidity: new Set<string>(),
+      staking: new Set<string>(),
     };
 
     // APY/APR patterns
@@ -351,29 +369,40 @@ export const getDeFiData: Tool = {
       /rewards.*?(\d+\.?\d*)\s*(?:ETH|%)/gi,
     ];
 
+    // ⚡ Bolt Optimization: Use lazy matchAll() iteration directly into a Set with an early
+    // break per pattern to prevent full-document evaluation, significantly improving performance.
     if (dataType === "apy" || dataType === "all") {
       for (const pattern of apyPatterns) {
-        const matches = snapshotText.match(pattern);
-        if (matches) {
-          defiData.apy.push(...matches.slice(0, 5));
+        let count = 0;
+        const safePattern = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
+        for (const match of snapshotText.matchAll(safePattern)) {
+          defiData.apy.add(match[0]);
+          count++;
+          if (count >= 5) break;
         }
       }
     }
 
     if (dataType === "liquidity" || dataType === "all") {
       for (const pattern of liquidityPatterns) {
-        const matches = snapshotText.match(pattern);
-        if (matches) {
-          defiData.liquidity.push(...matches.slice(0, 5));
+        let count = 0;
+        const safePattern = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
+        for (const match of snapshotText.matchAll(safePattern)) {
+          defiData.liquidity.add(match[0]);
+          count++;
+          if (count >= 5) break;
         }
       }
     }
 
     if (dataType === "staking" || dataType === "all") {
       for (const pattern of stakingPatterns) {
-        const matches = snapshotText.match(pattern);
-        if (matches) {
-          defiData.staking.push(...matches.slice(0, 5));
+        let count = 0;
+        const safePattern = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
+        for (const match of snapshotText.matchAll(safePattern)) {
+          defiData.staking.add(match[0]);
+          count++;
+          if (count >= 5) break;
         }
       }
     }
@@ -381,16 +410,16 @@ export const getDeFiData: Tool = {
     let result = "DeFi Data:\n";
     let foundData = false;
 
-    if (defiData.apy.length > 0) {
-      result += `  APY/APR: ${[...new Set(defiData.apy)].join(", ")}\n`;
+    if (defiData.apy.size > 0) {
+      result += `  APY/APR: ${Array.from(defiData.apy).join(", ")}\n`;
       foundData = true;
     }
-    if (defiData.liquidity.length > 0) {
-      result += `  Liquidity/TVL: ${[...new Set(defiData.liquidity)].join(", ")}\n`;
+    if (defiData.liquidity.size > 0) {
+      result += `  Liquidity/TVL: ${Array.from(defiData.liquidity).join(", ")}\n`;
       foundData = true;
     }
-    if (defiData.staking.length > 0) {
-      result += `  Staking: ${[...new Set(defiData.staking)].join(", ")}`;
+    if (defiData.staking.size > 0) {
+      result += `  Staking: ${Array.from(defiData.staking).join(", ")}`;
       foundData = true;
     }
 
