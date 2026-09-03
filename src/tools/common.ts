@@ -20,7 +20,26 @@ export const navigate: ToolFactory = (snapshot) => ({
   },
   handle: async (context, params) => {
     const { url } = NavigateTool.shape.arguments.parse(params);
-    await context.sendSocketMessage("browser_navigate", { url });
+
+    // Security check: Validate and normalize URL to prevent XSS and local file inclusion
+    let normalizedUrl = url.trim();
+    if (!normalizedUrl.includes("://")) {
+      normalizedUrl = "http://" + normalizedUrl;
+    }
+
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(normalizedUrl);
+    } catch (error) {
+      throw new Error(`Invalid URL provided: ${url}`);
+    }
+
+    const protocol = parsedUrl.protocol.toLowerCase();
+    if (protocol !== "http:" && protocol !== "https:") {
+      throw new Error(`Navigation to restricted protocol is not allowed. Only HTTP and HTTPS are permitted. Got: ${protocol}`);
+    }
+
+    await context.sendSocketMessage("browser_navigate", { url: parsedUrl.href });
     if (snapshot) {
       return captureAriaSnapshot(context);
     }
