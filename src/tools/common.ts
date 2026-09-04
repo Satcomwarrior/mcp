@@ -20,7 +20,28 @@ export const navigate: ToolFactory = (snapshot) => ({
   },
   handle: async (context, params) => {
     const { url } = NavigateTool.shape.arguments.parse(params);
-    await context.sendSocketMessage("browser_navigate", { url });
+
+    // Security validation: Prevent navigation to dangerous protocols (XSS/LFI risks)
+    let urlToParse = url.trim();
+    if (!urlToParse.includes("://")) {
+      urlToParse = `http://${urlToParse}`;
+    }
+
+    let parsedUrl;
+    try {
+      parsedUrl = new URL(urlToParse);
+    } catch (e) {
+      throw new Error(`Invalid URL format`);
+    }
+
+    const blockedProtocols = ['javascript:', 'file:', 'data:', 'about:', 'chrome:', 'edge:'];
+    if (blockedProtocols.includes(parsedUrl.protocol)) {
+      throw new Error(`Navigation to ${parsedUrl.protocol} is not allowed for security reasons.`);
+    }
+
+    const safeUrl = parsedUrl.href;
+
+    await context.sendSocketMessage("browser_navigate", { url: safeUrl });
     if (snapshot) {
       return captureAriaSnapshot(context);
     }
