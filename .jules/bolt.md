@@ -4,3 +4,6 @@
 ## 2026-02-23 - Intl.NumberFormat Caching
 **Learning:** Instantiating `Intl.NumberFormat` repeatedly in a loop is a massive performance bottleneck. In this codebase's `src/utils/trading.ts` utility, formatting 10,000 prices dropped from ~4166ms to ~60ms (~69x speedup) simply by caching the formatter instance using a `Map` keyed by the currency and decimal configuration.
 **Action:** Always look for internal JavaScript globalization or formatting objects (like `Intl.NumberFormat`, `Intl.DateTimeFormat`) being created inside functions that are called frequently or in loops. Cache them aggressively using appropriate unique keys.
+## 2026-02-23 - Object.entries Allocation Overhead
+**Learning:** Using `Object.entries()` inside frequently called string parsing utility functions (like extracting suffixes in `parseVolume`) creates a massive performance bottleneck (~76x slower) due to continuous array allocation and iteration overhead.
+**Action:** Replace `Object.entries()` with direct conditional checks (e.g., `if/else if` based on string characters) or cache the array structures globally outside the function to prevent unnecessary garbage generation in hot paths.
