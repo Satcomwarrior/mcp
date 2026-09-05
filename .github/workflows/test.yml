@@ -1,0 +1,25 @@
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Run focused Node tests
+        run: node --experimental-strip-types --test test/*.test.mjs
+      - name: Check changed TypeScript syntax surfaces
+        run: |
+          node --experimental-strip-types --check src/utils/navigation-url.ts
+          node --experimental-strip-types --check src/utils/bounded-regex.ts
+          node --experimental-strip-types --check src/tools/eth.ts
