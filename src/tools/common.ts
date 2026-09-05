@@ -9,6 +9,7 @@ import {
 } from "@repo/types/mcp/tool";
 
 import { captureAriaSnapshot } from "@/utils/aria-snapshot";
+import { normalizeNavigationUrl } from "@/utils/navigation-url";
 
 import type { Tool, ToolFactory } from "./tool";
 
@@ -20,7 +21,8 @@ export const navigate: ToolFactory = (snapshot) => ({
   },
   handle: async (context, params) => {
     const { url } = NavigateTool.shape.arguments.parse(params);
-    await context.sendSocketMessage("browser_navigate", { url });
+    const normalizedUrl = normalizeNavigationUrl(url);
+    await context.sendSocketMessage("browser_navigate", { url: normalizedUrl });
     if (snapshot) {
       return captureAriaSnapshot(context);
     }
@@ -28,7 +30,7 @@ export const navigate: ToolFactory = (snapshot) => ({
       content: [
         {
           type: "text",
-          text: `Navigated to ${url}`,
+          text: `Navigated to ${normalizedUrl}`,
         },
       ],
     };
