@@ -4,6 +4,7 @@ import { normalizeNavigationUrl } from "../src/utils/navigation-url.ts";
 
 test("normalizes schemeless hostnames to http", () => {
   assert.equal(normalizeNavigationUrl("example.com/path"), "http://example.com/path");
+  assert.equal(normalizeNavigationUrl("localhost:3000/app"), "http://localhost:3000/app");
 });
 
 test("preserves and normalizes http and https URLs", () => {
