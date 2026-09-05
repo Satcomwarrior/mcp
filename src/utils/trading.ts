@@ -177,21 +177,13 @@ export function parseVolume(volumeString: string): number | null {
   if (!volumeString) return null;
   
   const cleaned = volumeString.replace(/[^0-9.KMB]/gi, "").toUpperCase();
-  const multipliers: Record<string, number> = {
-    K: 1000,
-    M: 1000000,
-    B: 1000000000,
-  };
-  
   let num = parseFloat(cleaned);
   if (isNaN(num)) return null;
-  
-  for (const [suffix, multiplier] of Object.entries(multipliers)) {
-    if (cleaned.endsWith(suffix)) {
-      num *= multiplier;
-      break;
-    }
-  }
+
+  const suffix = cleaned[cleaned.length - 1];
+  if (suffix === "K") num *= 1000;
+  else if (suffix === "M") num *= 1000000;
+  else if (suffix === "B") num *= 1000000000;
   
   return num;
 }
