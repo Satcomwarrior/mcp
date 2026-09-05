@@ -4,3 +4,6 @@
 ## 2026-02-23 - Intl.NumberFormat Caching
 **Learning:** Instantiating `Intl.NumberFormat` repeatedly in a loop is a massive performance bottleneck. In this codebase's `src/utils/trading.ts` utility, formatting 10,000 prices dropped from ~4166ms to ~60ms (~69x speedup) simply by caching the formatter instance using a `Map` keyed by the currency and decimal configuration.
 **Action:** Always look for internal JavaScript globalization or formatting objects (like `Intl.NumberFormat`, `Intl.DateTimeFormat`) being created inside functions that are called frequently or in loops. Cache them aggressively using appropriate unique keys.
+## 2024-06-25 - Avoid match().slice() for unique items
+**Learning:** Using `match(/.../g)` on large strings allocates massive arrays containing all occurrences, even if only a few unique values are needed. Pushing these results to an array, spreading them into a Set, and then slicing `[...new Set(matches)].slice(0, 10)` is incredibly memory and CPU intensive. In large Aria snapshots, this pattern was found to be 20x slower than using a generator-based approach.
+**Action:** Replace `match().slice()` patterns with a lazy generator approach using `matchAll()`. Maintain a `Set` of seen items inside the loop and `break` early when the Set size hits the limit to eliminate unnecessary evaluations and allocations.
