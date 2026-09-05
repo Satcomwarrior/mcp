@@ -6,20 +6,26 @@ This file records useful work discovered while closing stale or duplicate pull r
 
 ### Source PRs
 
+The broader `getEthBalance` optimization idea appears in several stale variants, including:
+
+- #343
+- #348
 - #351
 - #330
-- #332
-- related bounded-regex consolidation: #364
+
+Related regex-only variants and the bounded-regex consolidation include #332 and #364.
 
 ### What is already preserved on `main`
 
 `src/utils/bounded-regex.ts` provides `takeRegexMatches()`, which clones a regular expression with the global flag when necessary, lazily iterates with `matchAll()`, and stops after a requested limit. `src/tools/eth.ts` uses it for USD extraction, ETH pair price/volume/change, DeFi APY/liquidity/staking, and transaction-status-style bounded searches.
 
+PR #364 explicitly left the intentionally broader balance/token collection unchanged, so the source PRs above must not be described as fully superseded in that specific respect.
+
 ### What is not yet fully preserved
 
 The primary `getEthBalance` `balancePatterns` loop on `main` still uses `snapshotText.match(pattern)`. That eagerly evaluates all matches before later Set deduplication and the final 10-item limit.
 
-Closed PR #351 attempted to make this path lazy by collecting matches directly into a Set and breaking once the Set reached 10. The performance idea is useful, but that implementation must not be restored verbatim because early stopping can change observable output when early matches are duplicates or when later patterns would contribute additional unique values.
+Several closed PRs attempted to make this path lazy by collecting matches directly into a Set and breaking once the Set reached 10. The performance idea is useful, but those implementations must not be restored verbatim because early stopping can change observable output when early matches are duplicates or when later patterns would contribute additional unique values.
 
 ### Safe recovery contract
 
@@ -36,6 +42,12 @@ Any replacement should be rebuilt from current `main` and must:
 ### File audit
 
 Representative closed PRs #351, #330, and #332 were checked during cleanup. Their changed files were limited to `src/tools/eth.ts` plus `.jules/bolt.md`; they did not contain a separate dataset or unrelated production file.
+
+The old `.jules/bolt.md` variants contained the general lesson that eager global `match()` can waste work when callers immediately cap results. That lesson is preserved here in a safer form. The old blanket prescription to break when a Set reaches the cap is intentionally not copied verbatim because it can change output semantics.
+
+## Navigation-security duplicate family
+
+The closed Sentinel URL-validation PR family is represented on `main` by the stricter #363 implementation. `src/tools/common.ts` sends the normalized URL returned by the shared navigation validator to the browser, rather than forwarding the raw input. This retains the important normalization/TOCTOU concern raised by several stale variants while using an HTTP(S)-only positive allowlist.
 
 ## Cleanup rule
 
