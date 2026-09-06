@@ -1,0 +1,83 @@
+name: Repository Backup Bundle
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '17 10 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: repository-backup-main
+  cancel-in-progress: false
+
+jobs:
+  bundle:
+    name: Build restorable backup
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout full repository history
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Fetch all remote branch refs and tags
+        run: |
+          git fetch --prune origin '+refs/heads/*:refs/remotes/origin/*' '+refs/tags/*:refs/tags/*'
+
+      - name: Resolve main commit
+        id: main
+        shell: bash
+        run: |
+          set -euo pipefail
+          main_sha="$(git rev-parse origin/main)"
+          echo "sha=${main_sha}" >> "$GITHUB_OUTPUT"
+          echo "short_sha=${main_sha::12}" >> "$GITHUB_OUTPUT"
+
+      - name: Create Git bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          short_sha="${{ steps.main.outputs.short_sha }}"
+          git bundle create "mcp-${short_sha}.bundle" --all
+          git bundle verify "mcp-${short_sha}.bundle"
+          sha256sum "mcp-${short_sha}.bundle" > "mcp-${short_sha}.bundle.sha256"
+
+      - name: Create source snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          short_sha="${{ steps.main.outputs.short_sha }}"
+          git archive --format=zip --output="mcp-source-${short_sha}.zip" origin/main
+          sha256sum "mcp-source-${short_sha}.zip" > "mcp-source-${short_sha}.zip.sha256"
+
+      - name: Write backup manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            echo "repository=Satcomwarrior/mcp"
+            echo "commit=${{ steps.main.outputs.sha }}"
+            echo "short_commit=${{ steps.main.outputs.short_sha }}"
+            echo "generated_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            echo "workflow_run=${GITHUB_RUN_ID}"
+          } > backup-manifest.txt
+
+      - name: Upload backup staging artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcp-repository-backup-${{ steps.main.outputs.sha }}
+          path: |
+            mcp-*.bundle
+            mcp-*.bundle.sha256
+            mcp-source-*.zip
+            mcp-source-*.zip.sha256
+            backup-manifest.txt
+          if-no-files-found: error
+          retention-days: 90
+          compression-level: 0
