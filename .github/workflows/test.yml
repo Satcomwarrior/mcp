@@ -18,8 +18,10 @@ jobs:
           node-version: 24
       - name: Run focused Node tests
         run: node --experimental-strip-types --test test/*.test.mjs
-      - name: Check changed TypeScript syntax surfaces
+      - name: Check all TypeScript syntax surfaces
+        shell: bash
         run: |
-          node --experimental-strip-types --check src/utils/navigation-url.ts
-          node --experimental-strip-types --check src/utils/bounded-regex.ts
-          node --experimental-strip-types --check src/tools/eth.ts
+          set -euo pipefail
+          while IFS= read -r file; do
+            node --experimental-strip-types --check "$file"
+          done < <(find src -name '*.ts' -type f -print | sort)
