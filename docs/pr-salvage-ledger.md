@@ -67,6 +67,10 @@ PR #369 introduced a scheduled and push-triggered all-refs repository backup. Th
 
 The prior Jules CI auto-fix step compared `workflow_run.head_branch` against the username `Satcomwarrior`. That confused a branch name with repository/user provenance and prevented normal failing branches from invoking the fixer. PR #370 replaces that check with a same-repository provenance gate and adds per-branch concurrency.
 
+### Dead issue-triggered bugfix workflow
+
+Repository Issues are disabled (`has_issues=false`), while `.github/workflows/jules-bugfix.yml` is triggered only by `issues: labeled`. In the current configuration that workflow cannot fire. Do not rely on it for automated bugfix dispatch. Resolve deliberately by either enabling repository Issues or redesigning the workflow around a supported trigger such as `workflow_dispatch`/`repository_dispatch` with explicit inputs and equivalent provenance controls.
+
 ### CI coverage
 
 The dependency-free Test workflow previously syntax-checked only three selected TypeScript files. PR #370 expands syntax validation to every `src/**/*.ts` file while retaining the focused Node tests.
