@@ -2,9 +2,23 @@ const EXPLICIT_SCHEME = /^[a-zA-Z][a-zA-Z\d+.-]*:/;
 const HOST_WITH_PORT = /^(?:localhost|(?:\d{1,3}\.){3}\d{1,3}|(?:[a-zA-Z\d-]+\.)+[a-zA-Z\d-]+):\d+(?:\/|$)/;
 
 export function normalizeNavigationUrl(input: string): string {
-  const trimmed = input.trim();
+  // Strip control characters and trim whitespace to prevent protocol bypass
+  const trimmed = input.replace(/^[\x00-\x1F\s]+|[\x00-\x1F\s]+$/g, "");
   if (!trimmed) {
     throw new Error("A valid URL is required");
+  }
+
+  const originalLower = trimmed.toLowerCase();
+  if (
+    originalLower.startsWith("javascript:") ||
+    originalLower.startsWith("data:") ||
+    originalLower.startsWith("file:") ||
+    originalLower.startsWith("vbscript:") ||
+    originalLower.startsWith("chrome:") ||
+    originalLower.startsWith("about:") ||
+    originalLower.startsWith("edge:")
+  ) {
+    throw new Error("Navigation only supports http and https URLs");
   }
 
   const shouldPrefixHttp = !EXPLICIT_SCHEME.test(trimmed) || HOST_WITH_PORT.test(trimmed);
