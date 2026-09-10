@@ -22,17 +22,26 @@ export const watchlist: Resource = {
       .map((c) => (c as any).text)
       .join("\n");
 
-    // Extract potential watchlist items
+    // Extract potential watchlist items using lazy matching and early exit
     const symbolPattern = /\b[A-Z]{2,5}\b/g;
     const pricePattern = /\$[\d,]+\.?\d*/g;
     
-    const symbols = snapshotText.match(symbolPattern) || [];
-    const prices = snapshotText.match(pricePattern) || [];
+    const uniqueSymbols = new Set<string>();
+    for (const match of snapshotText.matchAll(symbolPattern)) {
+      uniqueSymbols.add(match[0]);
+      if (uniqueSymbols.size >= 20) break;
+    }
+
+    const uniquePrices = new Set<string>();
+    for (const match of snapshotText.matchAll(pricePattern)) {
+      uniquePrices.add(match[0]);
+      if (uniquePrices.size >= 20) break;
+    }
     
     const watchlistData = {
       timestamp: new Date().toISOString(),
-      symbols: [...new Set(symbols)].slice(0, 20), // Limit to 20 symbols
-      prices: [...new Set(prices)].slice(0, 20),
+      symbols: Array.from(uniqueSymbols),
+      prices: Array.from(uniquePrices),
       source: "current_page",
     };
 
@@ -131,10 +140,18 @@ export const marketSummary: Resource = {
 
     const marketData: Record<string, string[]> = {};
     
+    // Extract using lazy matching and early exit for performance
     for (const [key, pattern] of Object.entries(marketPatterns)) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        marketData[key] = [...new Set(matches)].slice(0, 10);
+      const safePattern = new RegExp(pattern.source, pattern.flags.includes("g") ? pattern.flags : `${pattern.flags}g`);
+      const uniqueMatches = new Set<string>();
+
+      for (const match of snapshotText.matchAll(safePattern)) {
+        uniqueMatches.add(match[0]);
+        if (uniqueMatches.size >= 10) break;
+      }
+
+      if (uniqueMatches.size > 0) {
+        marketData[key] = Array.from(uniqueMatches);
       }
     }
 
