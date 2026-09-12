@@ -11,3 +11,7 @@
 **Vulnerability:** Node.js `net.createServer()` and `WebSocketServer` bind to all network interfaces (`::` or `0.0.0.0`) by default if no host is specified, exposing local automation endpoints to external networks.
 **Learning:** Internal tools relying on default Node.js host binding can become remote code execution vectors.
 **Prevention:** Always explicitly provide the `host: '127.0.0.1'` configuration parameter when instantiating local network servers.
+## 2026-09-12 - URL Normalization Control Character Bypass
+**Vulnerability:** URL protocol allowlists in `normalizeNavigationUrl` could be bypassed using control characters (e.g., `\x01javascript:alert(1)`) because `String.trim()` does not remove control characters.
+**Learning:** Naive `.trim()` is insufficient for security-critical string normalization. Control characters preceding the scheme can trick custom validators into missing explicit schemes while still being successfully parsed by `new URL()`.
+**Prevention:** Always aggressively strip control characters and whitespace (e.g., `.replace(/^[\s\x00-\x1F]+|[\s\x00-\x1F]+$/g, "")`) before validating URLs and relying on parsed protocol outcomes.
