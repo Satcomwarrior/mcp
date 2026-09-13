@@ -26,13 +26,28 @@ export const watchlist: Resource = {
     const symbolPattern = /\b[A-Z]{2,5}\b/g;
     const pricePattern = /\$[\d,]+\.?\d*/g;
     
-    const symbols = snapshotText.match(symbolPattern) || [];
-    const prices = snapshotText.match(pricePattern) || [];
+    // ⚡ Bolt Optimization: Use lazy evaluation (matchAll) and break early
+    // to avoid evaluating and allocating arrays for the entire DOM snapshot
+    const uniqueSymbols = new Set<string>();
+    const safeSymbolPattern = new RegExp(symbolPattern.source, symbolPattern.flags.includes("g") ? symbolPattern.flags : symbolPattern.flags + "g");
+    for (const match of snapshotText.matchAll(safeSymbolPattern)) {
+      uniqueSymbols.add(match[0]);
+      if (uniqueSymbols.size >= 20) break;
+    }
+
+    // ⚡ Bolt Optimization: Lazy evaluation for prices to stop parsing
+    // early once we hit the 20 unique items limit
+    const uniquePrices = new Set<string>();
+    const safePricePattern = new RegExp(pricePattern.source, pricePattern.flags.includes("g") ? pricePattern.flags : pricePattern.flags + "g");
+    for (const match of snapshotText.matchAll(safePricePattern)) {
+      uniquePrices.add(match[0]);
+      if (uniquePrices.size >= 20) break;
+    }
     
     const watchlistData = {
       timestamp: new Date().toISOString(),
-      symbols: [...new Set(symbols)].slice(0, 20), // Limit to 20 symbols
-      prices: [...new Set(prices)].slice(0, 20),
+      symbols: Array.from(uniqueSymbols),
+      prices: Array.from(uniquePrices),
       source: "current_page",
     };
 
@@ -132,9 +147,18 @@ export const marketSummary: Resource = {
     const marketData: Record<string, string[]> = {};
     
     for (const [key, pattern] of Object.entries(marketPatterns)) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        marketData[key] = [...new Set(matches)].slice(0, 10);
+      // ⚡ Bolt Optimization: Extracting only 10 unique matches.
+      // Using matchAll and a Set avoids eager evaluation of the whole page text.
+      const uniqueMatches = new Set<string>();
+      const safePattern = new RegExp(pattern.source, pattern.flags.includes("g") ? pattern.flags : pattern.flags + "g");
+
+      for (const match of snapshotText.matchAll(safePattern)) {
+        uniqueMatches.add(match[0]);
+        if (uniqueMatches.size >= 10) break;
+      }
+
+      if (uniqueMatches.size > 0) {
+        marketData[key] = Array.from(uniqueMatches);
       }
     }
 
