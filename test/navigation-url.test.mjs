@@ -14,6 +14,8 @@ test("preserves and normalizes http and https URLs", () => {
 
 test("rejects every non-http(s) protocol", () => {
   for (const url of [
+    "\x01javascript:alert(1)",
+    " \x1Fjavascript:alert(1) ",
     "javascript:alert(1)",
     "file:///etc/passwd",
     "data:text/html,<script>alert(1)</script>",
