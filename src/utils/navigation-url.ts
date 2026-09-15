@@ -2,7 +2,9 @@ const EXPLICIT_SCHEME = /^[a-zA-Z][a-zA-Z\d+.-]*:/;
 const HOST_WITH_PORT = /^(?:localhost|(?:\d{1,3}\.){3}\d{1,3}|(?:[a-zA-Z\d-]+\.)+[a-zA-Z\d-]+):\d+(?:\/|$)/;
 
 export function normalizeNavigationUrl(input: string): string {
-  const trimmed = input.trim();
+  // Security: Remove all C0 control characters and whitespace which WHATWG URL parsing ignores
+  // but can bypass our scheme validation regex.
+  const trimmed = input.replace(/^[\s\x00-\x1F]+|[\s\x00-\x1F]+$/g, "");
   if (!trimmed) {
     throw new Error("A valid URL is required");
   }
