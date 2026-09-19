@@ -4,3 +4,6 @@
 ## 2026-02-23 - Intl.NumberFormat Caching
 **Learning:** Instantiating `Intl.NumberFormat` repeatedly in a loop is a massive performance bottleneck. In this codebase's `src/utils/trading.ts` utility, formatting 10,000 prices dropped from ~4166ms to ~60ms (~69x speedup) simply by caching the formatter instance using a `Map` keyed by the currency and decimal configuration.
 **Action:** Always look for internal JavaScript globalization or formatting objects (like `Intl.NumberFormat`, `Intl.DateTimeFormat`) being created inside functions that are called frequently or in loops. Cache them aggressively using appropriate unique keys.
+## 2026-02-23 - Array Deduplication Bottleneck
+**Learning:** Using `Array.from(new Map(array.map(item => [key, item])).values())` for array deduplication creates a significant performance bottleneck due to the transient array allocation in the inner `.map()` function. Replacing it with a direct `for` loop that calls `map.set()` provides a >2x speedup while correctly preserving the behavior of retaining the *last* duplicate value.
+**Action:** Avoid inline array mapping when initializing Sets or Maps in loops. Use explicit `for` loops and `Set.add()` or `Map.set()` directly to prevent unnecessary garbage generation.
