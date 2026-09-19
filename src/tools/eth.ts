@@ -128,9 +128,11 @@ export const getGasPrice: Tool = {
       }
     }
 
-    const uniqueGasPrices = Array.from(
-      new Map(gasPrices.map((item) => [item.value, item])).values()
-    );
+    const gasPricesMap = new Map();
+    for (let i = 0; i < gasPrices.length; i++) {
+      gasPricesMap.set(gasPrices[i].value, gasPrices[i]);
+    }
+    const uniqueGasPrices = Array.from(gasPricesMap.values());
 
     const result =
       uniqueGasPrices.length > 0
