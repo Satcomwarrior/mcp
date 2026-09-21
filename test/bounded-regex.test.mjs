@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { takeRegexMatches } from "../src/utils/bounded-regex.ts";
+import { takeRegexMatches, takeUniqueRegexMatches } from "../src/utils/bounded-regex.ts";
 
 test("returns only the first requested matches in source order", () => {
   const text = "price 1 price 2 price 3 price 4";
@@ -20,4 +20,9 @@ test("supports non-global patterns without mutating the caller regex", () => {
 
 test("returns an empty array for non-positive limits", () => {
   assert.deepEqual(takeRegexMatches("x x x", /x/g, 0), []);
+});
+
+test("takeUniqueRegexMatches returns only unique matches and breaks early", () => {
+  const text = "$10 $10 $20 $30";
+  assert.deepEqual(takeUniqueRegexMatches(text, /\$\d+/g, 2), ["$10", "$20"]);
 });
