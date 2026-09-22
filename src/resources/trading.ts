@@ -1,5 +1,6 @@
 import type { Context } from "@/context";
 import { captureAriaSnapshot } from "@/utils/aria-snapshot";
+import { takeUniqueRegexMatches } from "@/utils/bounded-regex";
 
 import type { Resource } from "./resource";
 
@@ -26,13 +27,10 @@ export const watchlist: Resource = {
     const symbolPattern = /\b[A-Z]{2,5}\b/g;
     const pricePattern = /\$[\d,]+\.?\d*/g;
     
-    const symbols = snapshotText.match(symbolPattern) || [];
-    const prices = snapshotText.match(pricePattern) || [];
-    
     const watchlistData = {
       timestamp: new Date().toISOString(),
-      symbols: [...new Set(symbols)].slice(0, 20), // Limit to 20 symbols
-      prices: [...new Set(prices)].slice(0, 20),
+      symbols: takeUniqueRegexMatches(snapshotText, symbolPattern, 20), // Limit to 20 symbols
+      prices: takeUniqueRegexMatches(snapshotText, pricePattern, 20),
       source: "current_page",
     };
 
@@ -132,9 +130,9 @@ export const marketSummary: Resource = {
     const marketData: Record<string, string[]> = {};
     
     for (const [key, pattern] of Object.entries(marketPatterns)) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        marketData[key] = [...new Set(matches)].slice(0, 10);
+      const matches = takeUniqueRegexMatches(snapshotText, pattern, 10);
+      if (matches.length > 0) {
+        marketData[key] = matches;
       }
     }
 
