@@ -11,3 +11,7 @@
 **Vulnerability:** Node.js `net.createServer()` and `WebSocketServer` bind to all network interfaces (`::` or `0.0.0.0`) by default if no host is specified, exposing local automation endpoints to external networks.
 **Learning:** Internal tools relying on default Node.js host binding can become remote code execution vectors.
 **Prevention:** Always explicitly provide the `host: '127.0.0.1'` configuration parameter when instantiating local network servers.
+## 2025-02-17 - URL Allowlist Bypass via C0 Control Characters
+**Vulnerability:** XSS/LFI bypass in `normalizeNavigationUrl` where URLs starting with C0 control characters (e.g., `\x0Bjavascript:alert(1)`) bypassed explicit scheme regexes due to using `.trim()`, but were later parsed as dangerous schemes by the WHATWG URL standard.
+**Learning:** `String.prototype.trim()` only removes whitespace and line terminators, not all ASCII control characters. The WHATWG URL parser aggressively strips leading/trailing control characters, creating a Time-of-Check-to-Time-of-Use mismatch between regex validation and URL parsing.
+**Prevention:** Aggressively strip C0 control characters and whitespace using `.replace(/^[\s\x00-\x1F]+|[\s\x00-\x1F]+$/g, "")` before performing regex-based scheme validation on URLs.

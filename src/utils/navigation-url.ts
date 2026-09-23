@@ -2,7 +2,9 @@ const EXPLICIT_SCHEME = /^[a-zA-Z][a-zA-Z\d+.-]*:/;
 const HOST_WITH_PORT = /^(?:localhost|(?:\d{1,3}\.){3}\d{1,3}|(?:[a-zA-Z\d-]+\.)+[a-zA-Z\d-]+):\d+(?:\/|$)/;
 
 export function normalizeNavigationUrl(input: string): string {
-  const trimmed = input.trim();
+  // Security: String.trim() misses C0 control characters (e.g., \x01, \x0B).
+  // These can bypass scheme regexes but are stripped by new URL(), leading to protocol bypasses (e.g., javascript:).
+  const trimmed = input.replace(/^[\s\x00-\x1F]+|[\s\x00-\x1F]+$/g, "");
   if (!trimmed) {
     throw new Error("A valid URL is required");
   }
