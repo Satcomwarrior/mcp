@@ -4,3 +4,6 @@
 ## 2026-02-23 - Intl.NumberFormat Caching
 **Learning:** Instantiating `Intl.NumberFormat` repeatedly in a loop is a massive performance bottleneck. In this codebase's `src/utils/trading.ts` utility, formatting 10,000 prices dropped from ~4166ms to ~60ms (~69x speedup) simply by caching the formatter instance using a `Map` keyed by the currency and decimal configuration.
 **Action:** Always look for internal JavaScript globalization or formatting objects (like `Intl.NumberFormat`, `Intl.DateTimeFormat`) being created inside functions that are called frequently or in loops. Cache them aggressively using appropriate unique keys.
+## 2024-05-24 - [Optimize Regex Extraction & Object.entries Overhead]
+**Learning:** Eager evaluation of huge DOM strings via `match(/g/)` followed by `[...new Set()].slice()` causes unnecessary CPU cycles and memory allocations when only a small subset is needed. Additionally, continuously re-allocating `Object.entries(marketPatterns)` inside read functions generates garbage per call.
+**Action:** Always extract static mapping objects and their keys/entries outside of frequently executed read methods. Use lazy evaluation (`matchAll`) coupled with a `Set` for early exit when extracting bounded unique matches from large texts.
