@@ -1,5 +1,6 @@
 import type { Context } from "@/context";
 import { captureAriaSnapshot } from "@/utils/aria-snapshot";
+import { takeUniqueRegexMatches } from "@/utils/bounded-regex";
 
 import type { Resource } from "./resource";
 
@@ -22,17 +23,17 @@ export const watchlist: Resource = {
       .map((c) => (c as any).text)
       .join("\n");
 
-    // Extract potential watchlist items
+    // Extract potential watchlist items using lazy bounded evaluation
     const symbolPattern = /\b[A-Z]{2,5}\b/g;
     const pricePattern = /\$[\d,]+\.?\d*/g;
     
-    const symbols = snapshotText.match(symbolPattern) || [];
-    const prices = snapshotText.match(pricePattern) || [];
+    const symbols = takeUniqueRegexMatches(snapshotText, symbolPattern, 20);
+    const prices = takeUniqueRegexMatches(snapshotText, pricePattern, 20);
     
     const watchlistData = {
       timestamp: new Date().toISOString(),
-      symbols: [...new Set(symbols)].slice(0, 20), // Limit to 20 symbols
-      prices: [...new Set(prices)].slice(0, 20),
+      symbols, // Limit to 20 symbols
+      prices,
       source: "current_page",
     };
 
@@ -103,6 +104,15 @@ export const positions: Resource = {
   },
 };
 
+// Cache patterns globally to avoid re-allocation and regex recompilation on each read
+const MARKET_PATTERNS = {
+  indices: /\b(DOW|NASDAQ|S&P\s*500|SP500|DJI|IXIC|SPX)\b/gi,
+  prices: /\$[\d,]+\.?\d*/g,
+  changes: /[+-][\d,]+\.?\d*%/g,
+  volume: /Vol:\s*[\d,]+\.?\d*[KMB]?/gi,
+};
+const MARKET_PATTERN_ENTRIES = Object.entries(MARKET_PATTERNS);
+
 /**
  * Market summary resource
  * Provides quick access to market overview data
@@ -121,20 +131,12 @@ export const marketSummary: Resource = {
       .map((c) => (c as any).text)
       .join("\n");
 
-    // Extract market indices and major data points
-    const marketPatterns = {
-      indices: /\b(DOW|NASDAQ|S&P\s*500|SP500|DJI|IXIC|SPX)\b/gi,
-      prices: /\$[\d,]+\.?\d*/g,
-      changes: /[+-][\d,]+\.?\d*%/g,
-      volume: /Vol:\s*[\d,]+\.?\d*[KMB]?/gi,
-    };
-
     const marketData: Record<string, string[]> = {};
     
-    for (const [key, pattern] of Object.entries(marketPatterns)) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        marketData[key] = [...new Set(matches)].slice(0, 10);
+    for (const [key, pattern] of MARKET_PATTERN_ENTRIES) {
+      const matches = takeUniqueRegexMatches(snapshotText, pattern, 10);
+      if (matches.length > 0) {
+        marketData[key] = matches;
       }
     }
 
