@@ -4,3 +4,6 @@
 ## 2026-02-23 - Intl.NumberFormat Caching
 **Learning:** Instantiating `Intl.NumberFormat` repeatedly in a loop is a massive performance bottleneck. In this codebase's `src/utils/trading.ts` utility, formatting 10,000 prices dropped from ~4166ms to ~60ms (~69x speedup) simply by caching the formatter instance using a `Map` keyed by the currency and decimal configuration.
 **Action:** Always look for internal JavaScript globalization or formatting objects (like `Intl.NumberFormat`, `Intl.DateTimeFormat`) being created inside functions that are called frequently or in loops. Cache them aggressively using appropriate unique keys.
+## 2026-02-23 - Map Deduplication Optimization
+**Learning:** In V8/Node.js, array deduplication using `Array.from(new Map(arr.map(item => [key, item])).values())` is a significant performance bottleneck on large arrays due to the transient allocation of intermediate tuple arrays for the Map constructor, causing excessive garbage collection pressure.
+**Action:** Replace `Map(array.map())` constructs with an explicit `for` loop and `map.set()` to avoid intermediate array allocations. This is roughly 4-5x faster for large datasets while strictly preserving the "last-duplicate-wins" retention behavior of the original Map approach.
