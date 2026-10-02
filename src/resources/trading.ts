@@ -22,17 +22,24 @@ export const watchlist: Resource = {
       .map((c) => (c as any).text)
       .join("\n");
 
-    // Extract potential watchlist items
-    const symbolPattern = /\b[A-Z]{2,5}\b/g;
-    const pricePattern = /\$[\d,]+\.?\d*/g;
+    // Optimization: Lazy evaluation using matchAll and Set avoids large array
+    // allocations and full document evaluation when we only need the first 20 unique items.
+    const symbols = new Set<string>();
+    for (const match of snapshotText.matchAll(/\b[A-Z]{2,5}\b/g)) {
+      symbols.add(match[0]);
+      if (symbols.size >= 20) break;
+    }
     
-    const symbols = snapshotText.match(symbolPattern) || [];
-    const prices = snapshotText.match(pricePattern) || [];
+    const prices = new Set<string>();
+    for (const match of snapshotText.matchAll(/\$[\d,]+\.?\d*/g)) {
+      prices.add(match[0]);
+      if (prices.size >= 20) break;
+    }
     
     const watchlistData = {
       timestamp: new Date().toISOString(),
-      symbols: [...new Set(symbols)].slice(0, 20), // Limit to 20 symbols
-      prices: [...new Set(prices)].slice(0, 20),
+      symbols: Array.from(symbols),
+      prices: Array.from(prices),
       source: "current_page",
     };
 
@@ -132,9 +139,15 @@ export const marketSummary: Resource = {
     const marketData: Record<string, string[]> = {};
     
     for (const [key, pattern] of Object.entries(marketPatterns)) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        marketData[key] = [...new Set(matches)].slice(0, 10);
+      // Optimization: Lazy evaluation using matchAll and Set limits memory allocations
+      // by early exiting once we reach the 10 unique items required.
+      const uniqueMatches = new Set<string>();
+      for (const match of snapshotText.matchAll(pattern)) {
+        uniqueMatches.add(match[0]);
+        if (uniqueMatches.size >= 10) break;
+      }
+      if (uniqueMatches.size > 0) {
+        marketData[key] = Array.from(uniqueMatches);
       }
     }
 
