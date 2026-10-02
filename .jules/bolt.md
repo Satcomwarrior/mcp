@@ -4,3 +4,6 @@
 ## 2026-02-23 - Intl.NumberFormat Caching
 **Learning:** Instantiating `Intl.NumberFormat` repeatedly in a loop is a massive performance bottleneck. In this codebase's `src/utils/trading.ts` utility, formatting 10,000 prices dropped from ~4166ms to ~60ms (~69x speedup) simply by caching the formatter instance using a `Map` keyed by the currency and decimal configuration.
 **Action:** Always look for internal JavaScript globalization or formatting objects (like `Intl.NumberFormat`, `Intl.DateTimeFormat`) being created inside functions that are called frequently or in loops. Cache them aggressively using appropriate unique keys.
+## 2024-10-02 - Aria Snapshot Evaluation Bottleneck
+**Learning:** Aria snapshots generate extremely large string buffers. Running eager whole-document regexes (`String.prototype.match(/g/)`) on these buffers only to extract a small limit of unique items causes immense unnecessary allocations and CPU waste.
+**Action:** Always combine lazy iteration (`String.prototype.matchAll()`) with a `Set` to safely extract unique values and early-exit on large parsed text buffers.
