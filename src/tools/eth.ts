@@ -175,29 +175,41 @@ export const getEthBalance: Tool = {
       /USD.*?[\d,]+\.?\d*/gi,
     ];
 
-    const balances: string[] = [];
-    const usdValues: string[] = [];
+    const uniqueBalancesSet = new Set<string>();
+    const uniqueUsdValuesSet = new Set<string>();
 
     for (const pattern of balancePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        balances.push(...matches);
+      if (uniqueBalancesSet.size >= 10) break;
+      const safePattern = new RegExp(pattern.source, pattern.flags.includes("g") ? pattern.flags : `${pattern.flags}g`);
+      for (const match of snapshotText.matchAll(safePattern)) {
+        uniqueBalancesSet.add(match[0]);
+        if (uniqueBalancesSet.size >= 10) break;
       }
     }
 
-    if (includeTokens) {
+    if (includeTokens && uniqueBalancesSet.size < 10) {
       // Look for ERC-20 token balances
       const tokenPattern = /(\d+\.?\d*)\s*([A-Z]{2,10})\b/g;
-      const tokens = snapshotText.match(tokenPattern) || [];
-      balances.push(...tokens.filter(t => !t.includes('ETH')));
+      const safePattern = new RegExp(tokenPattern.source, tokenPattern.flags.includes("g") ? tokenPattern.flags : `${tokenPattern.flags}g`);
+      for (const match of snapshotText.matchAll(safePattern)) {
+        if (!match[0].includes('ETH')) {
+          uniqueBalancesSet.add(match[0]);
+          if (uniqueBalancesSet.size >= 10) break;
+        }
+      }
     }
 
     for (const pattern of usdPatterns) {
-      usdValues.push(...takeRegexMatches(snapshotText, pattern, 3));
+      if (uniqueUsdValuesSet.size >= 5) break;
+      const safePattern = new RegExp(pattern.source, pattern.flags.includes("g") ? pattern.flags : `${pattern.flags}g`);
+      for (const match of snapshotText.matchAll(safePattern)) {
+        uniqueUsdValuesSet.add(match[0]);
+        if (uniqueUsdValuesSet.size >= 5) break;
+      }
     }
 
-    const uniqueBalances = [...new Set(balances)].slice(0, 10);
-    const uniqueUsdValues = [...new Set(usdValues)].slice(0, 5);
+    const uniqueBalances = [...uniqueBalancesSet];
+    const uniqueUsdValues = [...uniqueUsdValuesSet];
 
     let result = "ETH Balance Information:\n";
     if (uniqueBalances.length > 0) {
