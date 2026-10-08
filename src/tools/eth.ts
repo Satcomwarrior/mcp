@@ -175,39 +175,46 @@ export const getEthBalance: Tool = {
       /USD.*?[\d,]+\.?\d*/gi,
     ];
 
-    const balances: string[] = [];
-    const usdValues: string[] = [];
+    // Using matchAll for lazy evaluation and early exit to save memory on large snapshots
+    const uniqueBalances = new Set<string>();
+    const uniqueUsdValues = new Set<string>();
 
     for (const pattern of balancePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        balances.push(...matches);
+      for (const match of snapshotText.matchAll(pattern)) {
+        uniqueBalances.add(match[0]);
+        if (uniqueBalances.size >= 10) break;
+      }
+      if (uniqueBalances.size >= 10) break;
+    }
+
+    if (includeTokens && uniqueBalances.size < 10) {
+      // Look for ERC-20 token balances
+      const tokenPattern = /(\d+\.?\d*)\s*([A-Z]{2,10})\b/g;
+      for (const match of snapshotText.matchAll(tokenPattern)) {
+        if (!match[0].includes('ETH')) {
+          uniqueBalances.add(match[0]);
+          if (uniqueBalances.size >= 10) break;
+        }
       }
     }
 
-    if (includeTokens) {
-      // Look for ERC-20 token balances
-      const tokenPattern = /(\d+\.?\d*)\s*([A-Z]{2,10})\b/g;
-      const tokens = snapshotText.match(tokenPattern) || [];
-      balances.push(...tokens.filter(t => !t.includes('ETH')));
-    }
-
     for (const pattern of usdPatterns) {
-      usdValues.push(...takeRegexMatches(snapshotText, pattern, 3));
+      for (const match of snapshotText.matchAll(pattern)) {
+        uniqueUsdValues.add(match[0]);
+        if (uniqueUsdValues.size >= 5) break;
+      }
+      if (uniqueUsdValues.size >= 5) break;
     }
-
-    const uniqueBalances = [...new Set(balances)].slice(0, 10);
-    const uniqueUsdValues = [...new Set(usdValues)].slice(0, 5);
 
     let result = "ETH Balance Information:\n";
-    if (uniqueBalances.length > 0) {
-      result += `  Balances: ${uniqueBalances.join(", ")}\n`;
+    if (uniqueBalances.size > 0) {
+      result += `  Balances: ${Array.from(uniqueBalances).join(", ")}\n`;
     }
-    if (uniqueUsdValues.length > 0) {
-      result += `  USD Values: ${uniqueUsdValues.join(", ")}`;
+    if (uniqueUsdValues.size > 0) {
+      result += `  USD Values: ${Array.from(uniqueUsdValues).join(", ")}`;
     }
 
-    if (uniqueBalances.length === 0 && uniqueUsdValues.length === 0) {
+    if (uniqueBalances.size === 0 && uniqueUsdValues.size === 0) {
       result = "No ETH balance information found on page";
     }
 
