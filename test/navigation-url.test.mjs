@@ -32,3 +32,11 @@ test("rejects malformed and empty URLs", () => {
   assert.throws(() => normalizeNavigationUrl("   "), /valid url/i);
   assert.throws(() => normalizeNavigationUrl("http://"), /valid url/i);
 });
+
+test("rejects C0 control character protocol bypasses", () => {
+  for (let i = 0; i < 32; i++) {
+    const char = String.fromCharCode(i);
+    const url = `${char}javascript:alert(1)`;
+    assert.throws(() => normalizeNavigationUrl(url), /http.*https/i, `Failed to reject ${i}`);
+  }
+});
