@@ -32,3 +32,14 @@ test("rejects malformed and empty URLs", () => {
   assert.throws(() => normalizeNavigationUrl("   "), /valid url/i);
   assert.throws(() => normalizeNavigationUrl("http://"), /valid url/i);
 });
+
+test("rejects protocols evading validation via control characters", () => {
+  for (const url of [
+    "\x01javascript:alert(1)",
+    " \n\x00 javascript:alert(1)",
+    "javascript\x01:alert(1)",
+    " \x0B file:///etc/passwd",
+  ]) {
+    assert.throws(() => normalizeNavigationUrl(url), /(http.*https|valid url)/i, url);
+  }
+});
