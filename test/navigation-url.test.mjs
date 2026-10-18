@@ -22,6 +22,8 @@ test("rejects every non-http(s) protocol", () => {
     "edge://settings",
     "ftp://example.com/file",
     "blob:https://example.com/id",
+    "\x01javascript:alert(1)",
+    " \x00javascript:alert(1)",
   ]) {
     assert.throws(() => normalizeNavigationUrl(url), /http.*https/i, url);
   }
