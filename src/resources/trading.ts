@@ -26,13 +26,23 @@ export const watchlist: Resource = {
     const symbolPattern = /\b[A-Z]{2,5}\b/g;
     const pricePattern = /\$[\d,]+\.?\d*/g;
     
-    const symbols = snapshotText.match(symbolPattern) || [];
-    const prices = snapshotText.match(pricePattern) || [];
+    // Opt: Use lazy matchAll and Set for early exit on large aria snapshots
+    const symbolsSet = new Set<string>();
+    for (const match of snapshotText.matchAll(symbolPattern)) {
+      symbolsSet.add(match[0]);
+      if (symbolsSet.size >= 20) break;
+    }
+
+    const pricesSet = new Set<string>();
+    for (const match of snapshotText.matchAll(pricePattern)) {
+      pricesSet.add(match[0]);
+      if (pricesSet.size >= 20) break;
+    }
     
     const watchlistData = {
       timestamp: new Date().toISOString(),
-      symbols: [...new Set(symbols)].slice(0, 20), // Limit to 20 symbols
-      prices: [...new Set(prices)].slice(0, 20),
+      symbols: Array.from(symbolsSet), // Limit to 20 symbols
+      prices: Array.from(pricesSet),
       source: "current_page",
     };
 
@@ -132,9 +142,14 @@ export const marketSummary: Resource = {
     const marketData: Record<string, string[]> = {};
     
     for (const [key, pattern] of Object.entries(marketPatterns)) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        marketData[key] = [...new Set(matches)].slice(0, 10);
+      // Opt: Use lazy matchAll and Set to break early instead of eager match(/g/)
+      const uniqueMatches = new Set<string>();
+      for (const match of snapshotText.matchAll(pattern)) {
+        uniqueMatches.add(match[0]);
+        if (uniqueMatches.size >= 10) break;
+      }
+      if (uniqueMatches.size > 0) {
+        marketData[key] = Array.from(uniqueMatches);
       }
     }
 
