@@ -11,3 +11,7 @@
 **Vulnerability:** Node.js `net.createServer()` and `WebSocketServer` bind to all network interfaces (`::` or `0.0.0.0`) by default if no host is specified, exposing local automation endpoints to external networks.
 **Learning:** Internal tools relying on default Node.js host binding can become remote code execution vectors.
 **Prevention:** Always explicitly provide the `host: '127.0.0.1'` configuration parameter when instantiating local network servers.
+## 2024-05-18 - URL Normalization Evasion via Control Characters
+**Vulnerability:** URL normalization logic relied on `String.prototype.trim()`, allowing URLs prefixed with C0 control characters (e.g., `\x01javascript:alert(1)`) to bypass explicit scheme regex validation.
+**Learning:** `new URL()` strips leading/trailing C0 control characters according to the WHATWG URL standard. Validation mechanisms that do not strip these characters beforehand will see a different string than what gets parsed, leading to Time-of-Check-to-Time-of-Use (TOCTOU) / evasion vulnerabilities.
+**Prevention:** Aggressively strip both whitespace and C0 control characters (e.g., using `.replace(/^[\s\x00-\x1F]+|[\s\x00-\x1F]+$/g, "")`) before performing URL regex validation or using `new URL()`.
