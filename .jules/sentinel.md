@@ -11,3 +11,8 @@
 **Vulnerability:** Node.js `net.createServer()` and `WebSocketServer` bind to all network interfaces (`::` or `0.0.0.0`) by default if no host is specified, exposing local automation endpoints to external networks.
 **Learning:** Internal tools relying on default Node.js host binding can become remote code execution vectors.
 **Prevention:** Always explicitly provide the `host: '127.0.0.1'` configuration parameter when instantiating local network servers.
+
+## 2024-10-21 - [Bypass of URL Protocol Validation]
+**Vulnerability:** URL validation bypass due to `String.trim()` missing C0 control characters.
+**Learning:** The WHATWG URL standard (`new URL()`) strips leading/trailing C0 control characters during parsing. However, custom regex checks against the raw string might fail, leading to misinterpretation. Using `trim()` leaves control characters like `\x01javascript:` intact, which can bypass custom checks but then be parsed by `new URL()` successfully.
+**Prevention:** Aggressively strip control characters and whitespace using `.replace(/^[\s\x00-\x1F]+|[\s\x00-\x1F]+$/g, "")` before doing any string-based custom protocol validation.
