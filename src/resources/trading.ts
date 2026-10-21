@@ -22,17 +22,27 @@ export const watchlist: Resource = {
       .map((c) => (c as any).text)
       .join("\n");
 
-    // Extract potential watchlist items
+    // Extract potential watchlist items using lazy matching to avoid massive allocations
+    // on large snapshot strings, breaking early once we hit the deduplicated limit.
     const symbolPattern = /\b[A-Z]{2,5}\b/g;
     const pricePattern = /\$[\d,]+\.?\d*/g;
     
-    const symbols = snapshotText.match(symbolPattern) || [];
-    const prices = snapshotText.match(pricePattern) || [];
+    const symbols = new Set<string>();
+    for (const match of snapshotText.matchAll(symbolPattern)) {
+      symbols.add(match[0]);
+      if (symbols.size >= 20) break;
+    }
+
+    const prices = new Set<string>();
+    for (const match of snapshotText.matchAll(pricePattern)) {
+      prices.add(match[0]);
+      if (prices.size >= 20) break;
+    }
     
     const watchlistData = {
       timestamp: new Date().toISOString(),
-      symbols: [...new Set(symbols)].slice(0, 20), // Limit to 20 symbols
-      prices: [...new Set(prices)].slice(0, 20),
+      symbols: Array.from(symbols), // Limit to 20 symbols enforced above
+      prices: Array.from(prices),
       source: "current_page",
     };
 
@@ -132,9 +142,14 @@ export const marketSummary: Resource = {
     const marketData: Record<string, string[]> = {};
     
     for (const [key, pattern] of Object.entries(marketPatterns)) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        marketData[key] = [...new Set(matches)].slice(0, 10);
+      const matches = new Set<string>();
+      // Lazy evaluation avoids eager matching overhead on massive snapshot strings
+      for (const match of snapshotText.matchAll(pattern)) {
+        matches.add(match[0]);
+        if (matches.size >= 10) break; // Stop evaluating early once we hit our target
+      }
+      if (matches.size > 0) {
+        marketData[key] = Array.from(matches);
       }
     }
 
