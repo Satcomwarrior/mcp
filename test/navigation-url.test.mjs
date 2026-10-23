@@ -32,3 +32,8 @@ test("rejects malformed and empty URLs", () => {
   assert.throws(() => normalizeNavigationUrl("   "), /valid url/i);
   assert.throws(() => normalizeNavigationUrl("http://"), /valid url/i);
 });
+
+test("rejects URLs with control character bypass attempts", () => {
+  assert.throws(() => normalizeNavigationUrl("\x01javascript:alert(1)"), /http.*https/i);
+  assert.throws(() => normalizeNavigationUrl("javascript\x09:alert(1)"), /valid url/i);
+});
