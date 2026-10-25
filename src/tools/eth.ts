@@ -175,28 +175,34 @@ export const getEthBalance: Tool = {
       /USD.*?[\d,]+\.?\d*/gi,
     ];
 
-    const balances: string[] = [];
+    // ⚡ Bolt: Use lazy evaluation with Set to prevent eager evaluation of large text buffers
+    const balances = new Set<string>();
     const usdValues: string[] = [];
 
     for (const pattern of balancePatterns) {
-      const matches = snapshotText.match(pattern);
-      if (matches) {
-        balances.push(...matches);
+      for (const match of snapshotText.matchAll(pattern)) {
+        balances.add(match[0]);
+        if (balances.size >= 10) break;
       }
+      if (balances.size >= 10) break;
     }
 
-    if (includeTokens) {
+    if (includeTokens && balances.size < 10) {
       // Look for ERC-20 token balances
       const tokenPattern = /(\d+\.?\d*)\s*([A-Z]{2,10})\b/g;
-      const tokens = snapshotText.match(tokenPattern) || [];
-      balances.push(...tokens.filter(t => !t.includes('ETH')));
+      for (const match of snapshotText.matchAll(tokenPattern)) {
+        if (!match[0].includes('ETH')) {
+          balances.add(match[0]);
+          if (balances.size >= 10) break;
+        }
+      }
     }
 
     for (const pattern of usdPatterns) {
       usdValues.push(...takeRegexMatches(snapshotText, pattern, 3));
     }
 
-    const uniqueBalances = [...new Set(balances)].slice(0, 10);
+    const uniqueBalances = Array.from(balances);
     const uniqueUsdValues = [...new Set(usdValues)].slice(0, 5);
 
     let result = "ETH Balance Information:\n";
